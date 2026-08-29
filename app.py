@@ -417,16 +417,26 @@ def run_claude(prompt, timeout=300):
     except Exception as exc:
         return None, f"could not run the Claude CLI: {exc}"
 
-    if proc.returncode != 0:
-        return None, (proc.stderr or proc.stdout or "the Claude CLI failed").strip()[:500]
-
     raw = proc.stdout.strip()
-    try:
-        envelope = json.loads(raw)
-        text = envelope.get("result", raw) if isinstance(envelope, dict) else raw
-    except json.JSONDecodeError:
-        text = raw
+    envelope = None
+    if raw:
+        try:
+            envelope = json.loads(raw)
+        except json.JSONDecodeError:
+            envelope = None
 
+    if proc.returncode != 0:
+        # The CLI still writes a JSON envelope on most failures (bad login, no
+        # credit, etc.) - its "result" field is the human-readable reason.
+        reason = envelope.get("result") if isinstance(envelope, dict) else None
+        if isinstance(reason, str) and "not logged in" in reason.lower():
+            return None, ('The Claude CLI at "{}" isn\'t logged in. Open it directly in '
+                          'a terminal (not through chat) and run /login, then try again.'
+                          ).format(cli)
+        message = reason or (proc.stderr or proc.stdout or "the Claude CLI failed").strip()
+        return None, str(message)[:500]
+
+    text = envelope.get("result", raw) if isinstance(envelope, dict) else raw
     parsed = extract_json_object(text)
     if parsed is None:
         return None, "Claude's reply wasn't valid JSON"
