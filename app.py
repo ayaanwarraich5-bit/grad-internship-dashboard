@@ -382,6 +382,16 @@ def find_claude_cli():
     for path in candidates:
         if os.path.isfile(path):
             return path
+    # The Windows Claude desktop app ships its own versioned Claude Code CLI here,
+    # e.g. %APPDATA%\Claude\claude-code\2.1.247\claude.exe, and never puts it on PATH.
+    versioned_root = os.path.expandvars(r"%APPDATA%\Claude\claude-code")
+    if os.path.isdir(versioned_root):
+        versions = sorted(os.listdir(versioned_root), reverse=True)
+        for version in versions:
+            for exe_name in ("claude.exe", "claude.cmd", "claude"):
+                path = os.path.join(versioned_root, version, exe_name)
+                if os.path.isfile(path):
+                    return path
     return None
 
 
