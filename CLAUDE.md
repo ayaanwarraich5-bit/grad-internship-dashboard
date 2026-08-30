@@ -101,12 +101,18 @@ never really work there and was removed.
    `"renamed"` or `"reworked_and_renamed"`) into `data.json`. The open dashboard picks
    it up within a few seconds via its poll — no need to tell it to refresh.
 
-### AI: find roles is still a button
+### AI: find roles is also chat-only, not a button
 
-`POST /api/applications/<id>/find-roles` shells out to the Claude Code CLI
-(`claude -p ... --output-format json`) so it reuses the existing login rather than
-needing an API key. If the CLI isn't reachable the endpoint returns a message pointing
-to chat instead. When asked to "find the specific roles at X", write `subRoles` as
-`[{name, highlighted, reason, url}]` — capture the **direct application URL** per track,
-not just the name; that link is what lets `selectedProgramme` pin a row to a real
-posting so CV analysis (above) can read the actual job description.
+There's no `/find-roles` route either — same reason as CV analysis: it shelled out to a
+Claude CLI that only exists in the dev environment Claude Code's tools run in, never on
+the machine actually running the browser. `data.json`'s `subRoles` field and the pill UI
+are unchanged; only the trigger moved to chat.
+
+**When asked in chat** to "find the specific roles at X": browse from Trackr's company
+page (`app.the-trackr.com`) through to the firm's own careers site, judge each distinct
+track against the strategy in section 2 above, and write `subRoles` as
+`[{name, highlighted, reason, url}]` directly into that row in `data.json` — capture the
+**direct application URL** per track, not just the company careers homepage; that link is
+what lets `selectedProgramme` pin a row to a real posting so CV analysis (above) can read
+the actual job description. The dashboard picks up the new pills within a few seconds via
+its poll.

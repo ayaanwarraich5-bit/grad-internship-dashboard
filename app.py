@@ -366,130 +366,16 @@ def fetch_posting_text(url, limit=9000):
     return text[:limit], None
 
 
-# ------------------------------------------------------------- Claude CLI
-
-def find_claude_cli():
-    for name in ("claude", "claude.cmd", "claude.exe"):
-        found = shutil.which(name)
-        if found:
-            return found
-    candidates = [
-        os.path.expandvars(r"%LOCALAPPDATA%\Programs\claude\claude.exe"),
-        os.path.expandvars(r"%APPDATA%\npm\claude.cmd"),
-        os.path.expanduser("~/.local/bin/claude"),
-        os.path.expanduser("~/.claude/local/claude"),
-    ]
-    for path in candidates:
-        if os.path.isfile(path):
-            return path
-    # The Windows Claude desktop app ships its own versioned Claude Code CLI here,
-    # e.g. %APPDATA%\Claude\claude-code\2.1.247\claude.exe, and never puts it on PATH.
-    versioned_root = os.path.expandvars(r"%APPDATA%\Claude\claude-code")
-    if os.path.isdir(versioned_root):
-        versions = sorted(os.listdir(versioned_root), reverse=True)
-        for version in versions:
-            for exe_name in ("claude.exe", "claude.cmd", "claude"):
-                path = os.path.join(versioned_root, version, exe_name)
-                if os.path.isfile(path):
-                    return path
-    return None
-
-
-CLI_MISSING = ("The Claude Code CLI isn't on PATH, so this button can't run the analysis "
-               "itself. Ask Claude Code in chat instead — e.g. \"analyse the CV on the "
-               "{company} row\" — and it will write the result straight into data.json; "
-               "this page will pick it up within a few seconds.")
-
-
-def run_claude(prompt, timeout=300):
-    """Run the Claude Code CLI headless. Returns (parsed_json, error_message)."""
-    cli = find_claude_cli()
-    if not cli:
-        return None, "CLI_MISSING"
-    try:
-        proc = subprocess.run(
-            [cli, "-p", prompt, "--output-format", "json"],
-            capture_output=True, text=True, encoding="utf-8", errors="replace",
-            timeout=timeout, cwd=ROOT,
-        )
-    except subprocess.TimeoutExpired:
-        return None, "the Claude CLI timed out"
-    except Exception as exc:
-        return None, f"could not run the Claude CLI: {exc}"
-
-    raw = proc.stdout.strip()
-    envelope = None
-    if raw:
-        try:
-            envelope = json.loads(raw)
-        except json.JSONDecodeError:
-            envelope = None
-
-    if proc.returncode != 0:
-        # The CLI still writes a JSON envelope on most failures (bad login, no
-        # credit, etc.) - its "result" field is the human-readable reason.
-        reason = envelope.get("result") if isinstance(envelope, dict) else None
-        if isinstance(reason, str) and "not logged in" in reason.lower():
-            return None, ('The Claude CLI at "{}" isn\'t logged in. Open it directly in '
-                          'a terminal (not through chat) and run /login, then try again.'
-                          ).format(cli)
-        message = reason or (proc.stderr or proc.stdout or "the Claude CLI failed").strip()
-        return None, str(message)[:500]
-
-    text = envelope.get("result", raw) if isinstance(envelope, dict) else raw
-    parsed = extract_json_object(text)
-    if parsed is None:
-        return None, "Claude's reply wasn't valid JSON"
-    return parsed, None
-
-
-def extract_json_object(text):
-    """Pull the first balanced {...} out of a possibly fenced reply."""
-    if not text:
-        return None
-    fence = re.search(r"```(?:json)?\s*(.+?)```", text, re.S)
-    if fence:
-        text = fence.group(1)
-    start = text.find("{")
-    if start == -1:
-        return None
-    depth, in_string, escape = 0, False, False
-    for i in range(start, len(text)):
-        ch = text[i]
-        if in_string:
-            if escape:
-                escape = False
-            elif ch == "\\":
-                escape = True
-            elif ch == '"':
-                in_string = False
-            continue
-        if ch == '"':
-            in_string = True
-        elif ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                try:
-                    return json.loads(text[start:i + 1])
-                except json.JSONDecodeError:
-                    return None
-    return None
-
-
-STRATEGY = """Ayaan Warraich is a UK final-year BSc Economics student (University of
-Nottingham) who has just completed a 10-week summer internship at abrdn (Aberdeen
-Investments), rotating across three Client Group teams: FC Screening & Monitoring,
-Distribution Governance & Client Controls, and the Strategic Insurance Group.
-
-He targets asset management and investment management, specifically CLIENT-FACING or
-INVESTMENTS roles. He is NOT applying to top investment banks, trading desks or quant
-roles. Pensions, insurance and consulting are backup only. He would rather apply to
-fewer roles he genuinely wants than maximise volume."""
-
-
 # ------------------------------------------------------------- PDF rendering
+#
+# There's no local Claude CLI invocation left in this file. It shelled out to a copy
+# of `claude` that only ever existed inside the dev environment Claude Code's own
+# tools run commands in, never on the machine actually running this Flask server, so
+# every button built on it (Analyse CV, Find roles) could never really work from the
+# browser. Both are now done directly through chat instead - ask Claude Code, e.g.
+# "analyse the CV on the X row" or "find the specific roles at X" - which reads/writes
+# files and data.json directly, with no subprocess call needed. extract_text(),
+# fetch_posting_text(), and render_cv_pdf() below remain as reusable pieces for that.
 
 def find_browser():
     for path in (
@@ -577,80 +463,6 @@ def render_cv_pdf(body_html, out_path):
         return last_error
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
-
-
-# --------------------------------------------------------- AI: find roles
-#
-# CV analysis has no HTTP route: the button that used to call one shelled out to a
-# local Claude CLI that only ever worked from inside this dev environment, never from
-# the browser on the user's own machine, so it was removed. The fix is to just ask
-# Claude Code in chat ("analyse the CV on the X row") - it reads the file, reasons
-# about fit itself with no subprocess call needed, and writes cvAnalysis/cvFile
-# straight into data.json. extract_text(), fetch_posting_text() and render_cv_pdf()
-# above remain as the reusable pieces for that: read the CV, read the pinned posting,
-# and render a verified one-page A4 rewrite the same way this route used to.
-
-@app.post("/api/applications/<app_id>/find-roles")
-def find_roles(app_id):
-    with _lock:
-        row = find_row(load_data(), app_id)
-    if row is None:
-        return jsonify({"error": "not found"}), 404
-    if row.get("type") not in ("grad", "intern"):
-        return jsonify({"error": "only grad and internship rows have sub-roles"}), 400
-
-    prompt = f"""{STRATEGY}
-
-Research every distinct early-careers track that {row.get('company')} actually advertises
-for the "{row.get('role')}" programme, then judge each one against the strategy above.
-
-Start from Trackr's company page (app.the-trackr.com) and follow through to the firm's
-own careers site. Known starting point: {row.get('sourceUrl') or 'search for it'}
-Researched notes on this firm: {row.get('notes')}
-
-A single Trackr line often splits into many separate postings once you reach the firm's
-own site — Schroders' 2027 internship, for example, covers Client Group, Public Markets
-Equities, Public Markets Multi-Asset, Quants, Finance, Marketing, Internal Audit and
-Corporate & Regulatory Change as distinct applications. Capture that real breakdown.
-
-Return ONLY a JSON object of the form:
-{{"subRoles": [
-  {{"name": "...", "highlighted": true, "reason": "why it fits or doesn't, one short phrase",
-    "url": "direct link to that specific posting"}}
-]}}
-
-Set "highlighted": true only for tracks that are genuinely client-facing or investments
-roles worth applying to. Capture each track's OWN direct application URL, not just the
-company careers homepage — that link is what pins a row to a real posting later.
-If the firm genuinely runs a single undivided programme, return one entry saying so."""
-
-    result, err = run_claude(prompt, timeout=600)
-    if err == "CLI_MISSING":
-        return jsonify({"error": CLI_MISSING.format(company=row.get("company"))}), 503
-    if err:
-        return jsonify({"error": err}), 502
-
-    sub_roles = []
-    for item in (result.get("subRoles") or []):
-        if not isinstance(item, dict) or not item.get("name"):
-            continue
-        sub_roles.append({
-            "name": str(item["name"])[:160],
-            "highlighted": bool(item.get("highlighted")),
-            "reason": str(item.get("reason") or "")[:240],
-            "url": str(item.get("url") or ""),
-        })
-    if not sub_roles:
-        return jsonify({"error": "Claude found no distinct tracks for this firm"}), 502
-
-    with _lock:
-        rows = load_data()
-        row = find_row(rows, app_id)
-        if row is None:
-            return jsonify({"error": "not found"}), 404
-        row["subRoles"] = sub_roles
-        save_data(rows)
-    return jsonify(row)
 
 
 # ---------------------------------------------------------------- static

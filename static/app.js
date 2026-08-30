@@ -36,8 +36,6 @@ let serialised = '';
 let inFlight = 0;              // writes we've sent but not yet seen echoed back
 const openPins = new Set();    // rows whose "applying for" picker is expanded
 const armedDeletes = new Set();
-const busy = new Set();        // rows with an AI job running
-const rowErrors = new Map();
 
 const $ = (sel) => document.querySelector(sel);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
@@ -327,10 +325,6 @@ function rowHTML(row) {
     `<option value="${key}"${row.stage === key ? ' selected' : ''}>${label}</option>`).join('');
 
   const armed = armedDeletes.has(row.id);
-  const findRoles = (row.type === 'grad' || row.type === 'intern')
-    ? `<button class="mini" data-act="find-roles" type="button" ${busy.has(row.id) ? 'disabled' : ''}>
-         ${busy.has(row.id) ? 'Working…' : 'Find roles'}</button>` : '';
-  const findRolesError = rowErrors.get(row.id);
 
   return `<article class="row" data-id="${esc(row.id)}">
     <div class="row-main">
@@ -343,13 +337,11 @@ function rowHTML(row) {
         <span class="badge b-${stageGroup}">${esc(STAGE_LABEL[row.stage] || row.stage)}</span>
       </div>
       ${subRolesHTML(row)}
-      ${findRolesError ? `<div class="cv-err">${esc(findRolesError)}</div>` : ''}
     </div>
     <div class="row-side">
       ${statusBadge}
       ${deadline}
       <select class="stage" data-act="stage" aria-label="Stage for ${esc(row.company)}">${stageOptions}</select>
-      ${findRoles}
       ${isPersonal ? '' : `<button class="del ${armed ? 'arm' : ''}" data-act="del" type="button">
         ${armed ? 'Click again to delete' : 'Delete'}</button>`}
     </div>
@@ -524,7 +516,6 @@ sections.addEventListener('click', async (event) => {
     inFlight += 1;
     try {
       mergeRow(await api(`/api/applications/${id}/cv`, { method: 'DELETE' }));
-      rowErrors.delete(id);
       flashSaved();
       renderSections();
     } catch (err) {
@@ -532,8 +523,6 @@ sections.addEventListener('click', async (event) => {
     } finally { inFlight -= 1; }
     return;
   }
-
-  if (act === 'find-roles') { runJob(id, 'find-roles', 'Roles found'); }
 });
 
 sections.addEventListener('submit', async (event) => {
@@ -597,32 +586,12 @@ async function uploadCV(id, file) {
   inFlight += 1;
   try {
     mergeRow(await api(`/api/applications/${id}/cv`, { method: 'POST', body }));
-    rowErrors.delete(id);
     flashSaved();
     toast(`Attached ${file.name}`);
     renderSections();
   } catch (err) {
     toast(`Upload failed: ${err.message}`, true);
   } finally { inFlight -= 1; }
-}
-
-async function runJob(id, endpoint, successMessage) {
-  busy.add(id);
-  rowErrors.delete(id);
-  renderSections();
-  inFlight += 1;
-  try {
-    mergeRow(await api(`/api/applications/${id}/${endpoint}`, { method: 'POST' }));
-    flashSaved();
-    toast(successMessage);
-  } catch (err) {
-    rowErrors.set(id, err.message);
-    toast(err.message, true);
-  } finally {
-    inFlight -= 1;
-    busy.delete(id);
-    renderAll();
-  }
 }
 
 /* ── polling: pick up edits Claude Code makes to data.json ────────────── */
@@ -642,7 +611,7 @@ async function poll() {
   // Skip entirely while the user is mid-edit or a write is in flight. `serialised`
   // stays stale, so the very next tick after they blur adopts fresh data — never a
   // snapshot taken before their edit was saved, which would flash the old text back.
-  if (inFlight > 0 || busy.size > 0 || userIsEditing()) return;
+  if (inFlight > 0 || userIsEditing()) return;
   let next;
   try { next = await api('/api/applications'); } catch { return; }
   if (JSON.stringify(next) === serialised) return;

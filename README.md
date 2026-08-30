@@ -46,19 +46,17 @@ DELETE /api/applications/:id
 POST   /api/applications/:id/cv          multipart upload, max 15MB, .pdf/.doc/.docx
 GET    /api/applications/:id/cv          downloads the attached file
 DELETE /api/applications/:id/cv
-
-POST   /api/applications/:id/find-roles  researches the firm's actual advertised tracks
 ```
 
-## CV analysis — done in chat, not a button
+## CV analysis and role research — done in chat, no buttons
 
-There's no `/analyse-cv` endpoint. Earlier versions shelled out to a locally-installed
-Claude CLI, but that CLI only ever existed inside the dev environment Claude Code runs
-commands in — never on the machine actually running the browser — so the button could
-never really work and was removed.
+There's no `/analyse-cv` or `/find-roles` endpoint. Both existed once as buttons that
+shelled out to a locally-installed Claude CLI, but that CLI only ever existed inside the
+dev environment Claude Code runs commands in — never on the machine actually running the
+browser — so neither button could really work there, and both were removed.
 
-Instead: drag a CV onto a grad/internship row, then just ask Claude Code in chat —
-*"analyse the CV on the Redburn row"*. It reads the file directly (no subprocess, no
+**CV analysis**: drag a CV onto a grad/internship row, then just ask Claude Code in chat
+— *"analyse the CV on the Redburn row"*. It reads the file directly (no subprocess, no
 login needed), scores 1–10 for how tailored *that* CV is to *that specific posting* — not
 whether it's a good CV in general. If the row has a programme pinned under **Applying
 for**, it fetches that page and scores against the real job description; otherwise it
@@ -68,13 +66,11 @@ and cutting only, never inventing) and rendered to a genuinely one-page A4 PDF v
 headless Edge/Chrome, tightening the layout and re-rendering until it fits. The result is
 saved as `Ayaan.Warraich.<FIRM>.CV.pdf` and shown under **CV used for this application**
 on the row; your original upload is always kept alongside it as `original-<filename>`.
-The score badge and summary appear on the page within a few seconds — no refresh needed.
 
-## Find roles
+**Role research**: ask Claude Code — *"find the specific roles at Schroders"*. It browses
+the firm's actual careers site (a single Trackr line is often nine separate postings),
+judges each track against the strategy in `CLAUDE.md`, and writes them as starred/
+unstarred pills on the row.
 
-This one still is a button, and still shells out to the Claude CLI (`claude -p …
---output-format json`) to reuse your existing login. It researches the distinct tracks a
-firm actually advertises (a single Trackr line is often nine separate postings) and
-stores them as starred/unstarred pills on the row. If the CLI isn't reachable, the button
-returns a message pointing you to chat instead — the result lands in `data.json` in the
-same shape either way, so the page doesn't care which path produced it.
+Either way, the result lands in `data.json` and the score badge, summary, or pills appear
+on the page within a few seconds — no refresh needed.
