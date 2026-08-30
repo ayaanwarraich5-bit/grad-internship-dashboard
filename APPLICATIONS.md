@@ -129,42 +129,87 @@ quantified achievement.
 
 **Never rebuild the CV in new HTML/CSS or a different template.** The `.docx` has its
 own fonts, spacing, margins and layout. Edit the bullet text of a *copy* of that file
-in place with `python-docx`, so the result is identical to his template with only the
-wording changed.
+in place, so the result is identical to his template with only the wording changed.
 
-1. Copy the base file, then `docx.Document(copy_path)`.
-2. For each bullet being reworded: `paragraph.runs[0].text = new_text`, then delete
-   every other run in that paragraph
-   (`for r in p.runs[1:]: r._element.getparent().remove(r._element)`). Bullets are
-   split across several identically-formatted runs from past edits, so keeping the
-   first run and clearing the rest preserves the exact formatting.
-3. **Only touch bullets.** Never section headers, job titles, company names, dates,
+The mechanics are done — use `tools/cv_tools.py` rather than hand-rolling them. It
+enforces the character budget, preserves run formatting, and exports through real Word.
+
+Rules it can't enforce for you:
+
+1. **Only touch bullets.** Never section headers, job titles, company names, dates,
    education, skills or contact details.
-4. **Keep each replacement at or under the original bullet's character count.** The CV
+2. **Keep each replacement at or under the original bullet's character count.** The CV
    fills exactly one page with no spare line. A bullet even ~16 characters longer can
    flip a line-wrap from one line to two, and that alone pushes the last line onto a
    second page. This has happened: shortening nine bullets by 200+ characters total
    still overflowed because one bullet grew. Budget per bullet, not in aggregate.
-5. Rephrase and cut only. **Never invent experience, employers, dates, grades or
+   `apply_bullets(..., strict=True)` (the default) raises if you break this.
+3. Rephrase and cut only. **Never invent experience, employers, dates, grades or
    skills.** Mirror the target posting's own language only where honestly supported.
-6. Export to PDF via Word COM, not a browser:
-   ```powershell
-   $word = New-Object -ComObject Word.Application
-   $word.Visible = $false
-   $doc = $word.Documents.Open($src, [ref]$false, [ref]$true)
-   $doc.ComputeStatistics(2)          # page count
-   $doc.SaveAs([ref]$out, [ref]17)    # 17 = PDF
-   $doc.Close(); $word.Quit()
-   ```
-   Then verify with `pypdf`'s `len(PdfReader(path).pages)` after the file size stops
-   changing — SaveAs can return before the file is flushed, and a stale read once
-   reported 1 page for a file that was really 2. Always kill leftover Word:
-   `Get-Process WINWORD | Stop-Process -Force`.
-7. The rewrite threshold is **below 7/10 fit, or doesn't already fit one side of A4**.
+4. The rewrite threshold is **below 7/10 fit, or doesn't already fit one side of A4**.
    If it's already a good fit, just rename it — don't rewrite.
 
 Python is at `%LOCALAPPDATA%\Programs\Python\Python312\python.exe` (not on PATH as
 `python`). `python-docx` and `pypdf` are installed.
+
+### The full recipe
+
+This is exactly the process used for the Barclays CV; running it through `cv_tools`
+reproduces that file byte for byte.
+
+**Step 1 — read the posting and the CV.** Get the real job description (ask Ayaan to
+paste it, or fetch the URL). Extract the CV text with
+`docx.Document(path)` or `app.extract_text()` from the project root.
+
+**Step 2 — score it, honestly.** 1–10 on how tailored *this* CV is to *this* posting,
+not whether it's a good CV in general. Use the recruiter persona below. Say plainly
+what's missing. Below 7, or over one page, rewrite.
+
+**Step 3 — see the budgets.**
+```
+python tools/cv_tools.py inspect "C:\Users\ayaan\OneDrive\Grads\Ayaan.Warraich.CV.Base.Grads.docx"
+```
+Prints every paragraph with its index and character count, flagging likely bullets.
+The count is your ceiling for that bullet.
+
+**Step 4 — rewrite and apply.**
+```python
+import sys; sys.path.insert(0, "tools")
+import cv_tools as cv
+
+SRC = r"C:\Users\ayaan\OneDrive\Grads\Ayaan.Warraich.CV.Base.Grads.docx"
+DST = r"...\Ayaan.Warraich.<FIRM>.CV.docx"
+
+changed = cv.apply_bullets(SRC, DST, {
+    14: "Researched 281 insurance clients holding €730bn in assets, ...",
+    16: "Cleared sanctions, PEP and adverse media alerts on confidential client cases ...",
+}, drop=[19])          # drop=[] unless a bullet is genuinely not worth its space
+print(changed)          # confirm only the paragraphs you intended moved
+```
+
+To add a line that must match an existing one (e.g. another `Label: value` line under
+ADDITIONAL INFORMATION), clone the neighbouring paragraph so the formatting carries:
+```python
+idx = cv.insert_after(DST, template_index=32, anchor_index=30, runs={
+    0: "Insight Programmes: ",
+    1: "Barclays (built a model portfolio to a set risk profile, ...)",
+})
+```
+
+**Step 5 — export and verify.**
+```python
+pages = cv.export_pdf(DST, DST.replace(".docx", ".pdf"))
+assert pages == 1, f"overflowed to {pages} pages — shorten the bullet that wrapped"
+```
+Takes a few seconds. It waits for Word to finish flushing before counting pages, and
+only ends the Word instance it started, so an open Word document of Ayaan's is safe.
+
+**Step 6 — if it's 2 pages,** find the single bullet that gained a line rather than
+trimming everything. Read the PDF, see which bullet now wraps one line further than
+its original, and cut that one back. Shortening other bullets usually won't help.
+
+**Step 7 — hand it over.** Give Ayaan the PDF (and the .docx). He attaches it to the
+dashboard row himself.
 
 ---
 
@@ -240,9 +285,26 @@ where a real point should be.
 
 ---
 
+## Cover letters and written answers
+
+Same rules as the CV: recruiter persona for that firm and industry, the writing-style
+constraints below, grounded in the experience bank rather than invented.
+
+A cover letter should make one argument, not three. Structure follows that argument —
+no "Challenges" / "Future Outlook" style templated sections. Lead with the specific
+reason this firm and this desk, not with the fact that he's applying. Use the concrete
+detail (281 insurers, €730bn, 97% against a 90% target, 9.5% WACC, 1st nationally)
+rather than adjectives about himself.
+
+The material that's too weak or too vague for the CV is often exactly right here —
+the Barclays insight day's "strategy, culture and operating model" and the networking
+conversations say nothing on a CV bullet but can carry a "why Barclays" paragraph.
+
 ## Handoff back to the dashboard
 
-Finished CVs go to Ayaan, who drops them into the dashboard himself as the record of
-what he actually submitted. Don't write to `data.json` or `uploads/` from this
-workspace — he'll attach the file via the dashboard UI, which records the filename,
-size and date on the row.
+Finished CVs and cover letters go to Ayaan, who drops them into the dashboard himself
+as the record of what he actually submitted. Each row holds one of each: a **CV** block
+and a **cover letter** block, both with drag-and-drop, View and Download.
+
+Don't write to `data.json` or `uploads/` from this workspace — he attaches files
+through the dashboard UI, which records the filename, size and date on the row.

@@ -231,17 +231,32 @@ def api_delete(app_id):
     return jsonify({"ok": True})
 
 
-# ------------------------------------------------------------------ CV files
+# ------------------------------------------------ attached documents (cv, cover)
 
-@app.post("/api/applications/<app_id>/cv")
-def cv_upload(app_id):
+# Each row can hold one of each kind. Both live flat in uploads/<id>/; the row records
+# which filename belongs to which kind.
+DOC_KINDS = {"cv": "cvFile", "cover": "coverFile"}
+DOC_LABELS = {"cv": "CV", "cover": "cover letter"}
+
+
+def other_kind_filenames(row, kind):
+    """Filenames belonging to the row's OTHER document kinds — never delete these."""
+    return {(row.get(field) or {}).get("filename")
+            for k, field in DOC_KINDS.items() if k != kind} - {None}
+
+
+@app.post("/api/applications/<app_id>/docs/<kind>")
+def doc_upload(app_id, kind):
+    field = DOC_KINDS.get(kind)
+    if field is None:
+        return jsonify({"error": f"unknown document type: {kind}"}), 404
+
     with _lock:
-        rows = load_data()
-        row = find_row(rows, app_id)
+        row = find_row(load_data(), app_id)
     if row is None:
         return jsonify({"error": "not found"}), 404
     if row.get("type") == "personal":
-        return jsonify({"error": "no CV on the in-progress row"}), 400
+        return jsonify({"error": f"no {DOC_LABELS[kind]} on the in-progress row"}), 400
 
     upload = request.files.get("file")
     if upload is None or not upload.filename:
@@ -257,15 +272,17 @@ def cv_upload(app_id):
         return jsonify({"error": "file is larger than 15MB"}), 400
 
     target_dir = row_dir(app_id)
-    # Clear any previously attached file, but never touch a kept original.
-    if os.path.isdir(target_dir):
-        for existing in os.listdir(target_dir):
-            if not existing.startswith("original-"):
-                try:
-                    os.unlink(os.path.join(target_dir, existing))
-                except OSError:
-                    pass
     os.makedirs(target_dir, exist_ok=True)
+
+    # Replace only the file this kind was previously pointing at. Deleting anything
+    # else would take out the row's other document (or a kept original) with it.
+    previous = (row.get(field) or {}).get("filename")
+    if previous and previous != filename and previous not in other_kind_filenames(row, kind):
+        try:
+            os.unlink(os.path.join(target_dir, previous))
+        except OSError:
+            pass
+
     with open(os.path.join(target_dir, filename), "wb") as fh:
         fh.write(blob)
 
@@ -274,49 +291,72 @@ def cv_upload(app_id):
         row = find_row(rows, app_id)
         if row is None:
             return jsonify({"error": "not found"}), 404
-        row["cvFile"] = {
-            "filename": filename,
-            "size": len(blob),
-            "uploadedAt": now_iso(),
-        }
-        row.pop("cvAnalysis", None)
+        row[field] = {"filename": filename, "size": len(blob), "uploadedAt": now_iso()}
+        if kind == "cv":
+            row.pop("cvAnalysis", None)   # a new CV invalidates the old scoring
         save_data(rows)
     return jsonify(row)
 
 
-@app.get("/api/applications/<app_id>/cv")
-def cv_download(app_id):
+@app.get("/api/applications/<app_id>/docs/<kind>")
+def doc_download(app_id, kind):
+    field = DOC_KINDS.get(kind)
+    if field is None:
+        return jsonify({"error": f"unknown document type: {kind}"}), 404
+
     with _lock:
         row = find_row(load_data(), app_id)
-    if row is None or not row.get("cvFile"):
-        return jsonify({"error": "no CV attached"}), 404
-    filename = row["cvFile"]["filename"]
+    if row is None or not row.get(field):
+        return jsonify({"error": f"no {DOC_LABELS[kind]} attached"}), 404
+    filename = row[field]["filename"]
     path = os.path.join(row_dir(app_id), filename)
     if not os.path.isfile(path):
         return jsonify({"error": "file missing on disk"}), 404
     # ?inline=1 lets the browser render the PDF in a tab instead of forcing a save,
-    # which is what you want when reviewing a CV rather than filing it.
+    # which is what you want when reviewing rather than filing it.
     inline = request.args.get("inline") == "1"
     return send_file(path, as_attachment=not inline, download_name=filename)
 
 
-@app.delete("/api/applications/<app_id>/cv")
-def cv_remove(app_id):
+@app.delete("/api/applications/<app_id>/docs/<kind>")
+def doc_remove(app_id, kind):
+    field = DOC_KINDS.get(kind)
+    if field is None:
+        return jsonify({"error": f"unknown document type: {kind}"}), 404
+
     with _lock:
         rows = load_data()
         row = find_row(rows, app_id)
         if row is None:
             return jsonify({"error": "not found"}), 404
-        filename = (row.get("cvFile") or {}).get("filename")
-        row.pop("cvFile", None)
-        row.pop("cvAnalysis", None)
+        filename = (row.get(field) or {}).get("filename")
+        keep = other_kind_filenames(row, kind)
+        row.pop(field, None)
+        if kind == "cv":
+            row.pop("cvAnalysis", None)
         save_data(rows)
-    if filename:
+    if filename and filename not in keep:
         try:
             os.unlink(os.path.join(row_dir(app_id), filename))
         except OSError:
             pass
     return jsonify(row)
+
+
+# Older paths, kept so a browser tab left open on the previous build still works.
+@app.post("/api/applications/<app_id>/cv")
+def cv_upload_legacy(app_id):
+    return doc_upload(app_id, "cv")
+
+
+@app.get("/api/applications/<app_id>/cv")
+def cv_download_legacy(app_id):
+    return doc_download(app_id, "cv")
+
+
+@app.delete("/api/applications/<app_id>/cv")
+def cv_remove_legacy(app_id):
+    return doc_remove(app_id, "cv")
 
 
 # ------------------------------------------------------- text extraction etc.

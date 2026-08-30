@@ -266,27 +266,35 @@ function analysisBadge(row) {
   return `<span class="badge b-${group}" title="${esc(analysis.summary || '')}">${analysis.score}/10 — ${verb}</span>`;
 }
 
-function cvHTML(row) {
-  const file = row.cvFile;
-  const analysis = row.cvAnalysis;
-  const badge = analysisBadge(row);
+const DOCS = [
+  { kind: 'cv',    field: 'cvFile',
+    label: 'CV used for this application',
+    prompt: 'Drop the CV you submitted (PDF/DOC) or click to choose' },
+  { kind: 'cover', field: 'coverFile',
+    label: 'Cover letter used for this application',
+    prompt: 'Drop the cover letter you submitted (PDF/DOC) or click to choose' },
+];
+
+function docHTML(row, spec) {
+  const file = row[spec.field];
+  // Only the CV carries a fit score.
+  const analysis = spec.kind === 'cv' ? row.cvAnalysis : null;
+  const badge = spec.kind === 'cv' ? analysisBadge(row) : '';
 
   if (!file) {
     // An analysis written straight into data.json from chat must still be visible
     // even when no file has been dropped on this row.
-    return `<div class="cvbox drop" data-act="drop">
+    return `<div class="cvbox drop" data-act="drop" data-kind="${spec.kind}">
       <input type="file" class="hidden-file" accept=".pdf,.doc,.docx" data-act="file">
-      Drop a CV here (PDF/DOC) or click to choose
+      ${spec.prompt}
     </div>
     ${badge ? `<div class="cv-line" style="margin-top:8px">${badge}</div>` : ''}
     ${analysis ? `<div class="cv-summary">${esc(analysis.summary || '')}</div>` : ''}`;
   }
 
-  // The CV used for this application: whatever a chat-driven analysis last renamed
-  // it to (Ayaan.Warraich.<FIRM>.CV.pdf), or your original upload if none has run yet.
-  return `<div class="cvbox has" data-act="drop">
+  return `<div class="cvbox has" data-act="drop" data-kind="${spec.kind}">
     <input type="file" class="hidden-file" accept=".pdf,.doc,.docx" data-act="file">
-    <div class="cv-label">CV used for this application</div>
+    <div class="cv-label">${spec.label}</div>
     <div class="cv-line">
       <span class="cv-name">${esc(file.filename)}</span>
       <span class="cv-size">${formatBytes(file.size)}</span>
@@ -294,9 +302,9 @@ function cvHTML(row) {
     </div>
     <div class="cv-line" style="margin-top:8px">
       ${/\.pdf$/i.test(file.filename)
-        ? '<button class="mini primary" data-act="cv-view" type="button">View</button>' : ''}
-      <button class="mini" data-act="cv-download" type="button">Download</button>
-      <button class="mini" data-act="cv-remove" type="button">Remove</button>
+        ? '<button class="mini primary" data-act="doc-view" type="button">View</button>' : ''}
+      <button class="mini" data-act="doc-download" type="button">Download</button>
+      <button class="mini" data-act="doc-remove" type="button">Remove</button>
     </div>
     ${analysis ? `<div class="cv-summary">${esc(analysis.summary || '')}</div>` : ''}
   </div>`;
@@ -353,7 +361,7 @@ function rowHTML(row) {
     <div class="row-extra">
       <textarea class="notes" data-act="notes" aria-label="Notes for ${esc(row.company)}"
         placeholder="Notes…">${esc(row.notes)}</textarea>
-      ${isPersonal ? '' : cvHTML(row)}
+      ${isPersonal ? '' : DOCS.map((spec) => docHTML(row, spec)).join('')}
     </div>
   </article>`;
 }
@@ -436,7 +444,8 @@ sections.addEventListener('change', async (event) => {
 
   if (article && act === 'file') {
     const file = target.files && target.files[0];
-    if (file) uploadCV(article.dataset.id, file);
+    const zone = target.closest('.cvbox');
+    if (file && zone) uploadDoc(article.dataset.id, zone.dataset.kind, file);
     target.value = '';
     return;
   }
@@ -528,21 +537,26 @@ sections.addEventListener('click', async (event) => {
     return;
   }
 
-  if (act === 'cv-view') {
-    window.open(`/api/applications/${id}/cv?inline=1`, '_blank', 'noopener');
+  const kind = (target.closest('.cvbox') || {}).dataset?.kind;
+
+  if (act === 'doc-view') {
+    window.open(`/api/applications/${id}/docs/${kind}?inline=1`, '_blank', 'noopener');
     return;
   }
 
-  if (act === 'cv-download') { window.location.href = `/api/applications/${id}/cv`; return; }
+  if (act === 'doc-download') {
+    window.location.href = `/api/applications/${id}/docs/${kind}`;
+    return;
+  }
 
-  if (act === 'cv-remove') {
+  if (act === 'doc-remove') {
     inFlight += 1;
     try {
-      mergeRow(await api(`/api/applications/${id}/cv`, { method: 'DELETE' }));
+      mergeRow(await api(`/api/applications/${id}/docs/${kind}`, { method: 'DELETE' }));
       flashSaved();
       renderSections();
     } catch (err) {
-      toast(`Couldn't remove the CV: ${err.message}`, true);
+      toast(`Couldn't remove it: ${err.message}`, true);
     } finally { inFlight -= 1; }
     return;
   }
@@ -590,11 +604,11 @@ sections.addEventListener('drop', (event) => {
   event.preventDefault();
   zone.classList.remove('over');
   const file = event.dataTransfer.files && event.dataTransfer.files[0];
-  if (file) uploadCV(zone.closest('.row').dataset.id, file);
+  if (file) uploadDoc(zone.closest('.row').dataset.id, zone.dataset.kind, file);
 });
 
-/* ── CV upload + AI jobs ──────────────────────────────────────────────── */
-async function uploadCV(id, file) {
+/* ── document upload ──────────────────────────────────────────────────── */
+async function uploadDoc(id, kind, file) {
   const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
   if (!['.pdf', '.doc', '.docx'].includes(ext)) {
     toast('Only .pdf, .doc and .docx files can be attached.', true);
@@ -608,7 +622,7 @@ async function uploadCV(id, file) {
   body.append('file', file);
   inFlight += 1;
   try {
-    mergeRow(await api(`/api/applications/${id}/cv`, { method: 'POST', body }));
+    mergeRow(await api(`/api/applications/${id}/docs/${kind}`, { method: 'POST', body }));
     flashSaved();
     toast(`Attached ${file.name}`);
     renderSections();
