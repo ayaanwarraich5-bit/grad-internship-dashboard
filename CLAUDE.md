@@ -43,6 +43,32 @@ doesn't already fit one page) and **single-side A4**. Never invent experience; r
 rephrase and reprioritise truthful content only. Never delete the original upload — it's
 kept as `uploads/<id>/original-<filename>`.
 
+## Experience bank — what can go on a CV
+
+The base CV (`Ayaan.Warraich.CV.Base.Grads.docx`) carries only the three strongest
+experiences: **Aberdeen Investments**, **NEFS Equity Fund**, **Schuh**. The rest below
+are real but weaker, and can be swapped in — or given space taken from the others —
+when a specific role's description makes one more relevant. Judge per role.
+
+| Experience | Angle it serves |
+|---|---|
+| **Aberdeen Investments** — Client Group Intern | Asset management, client governance, institutional clients, AFC/client screening, distribution |
+| **NEFS Equity Fund** — Senior Equities Analyst (Sep 2024 – May 2025) | Equity research, DCF, comps, investment recommendations to a committee. 5+ pitches, discretionary/cyclical retail |
+| **CapitOx M&A Competition** — Team Leader (Feb 2025) | M&A, valuation, synergies, leadership. Led a 4-person buy-side team; combined-entity DCF at 9.5% WACC, 2.5% terminal growth, ~33% implied premium; football-field summary. **Strongest item for any IB / M&A / transaction role** |
+| **Lopian Gross Barnett** — Audit & Tax Intern | Accounting, audit, financial information, client work. Tax filings, reconciliations, director-level reports; Corporate Audit across retail/hospitality/owner-managed; progressed to client reviews and recommendations |
+| **UBS Wealth Management** — Insight Day (Sept 2025) | Portfolio construction, asset allocation, risk profiling, client advisory, tailoring strategy to individual client objectives. **Best item for private banking / wealth management** |
+| **HSBC** — Investment Banking Insight | IB coverage and Markets exposure, corporate financing, evaluating financing options, presentation materials |
+| **Barclays** — Insight Day | Banking exposure / commercial awareness. **Detail not preserved — ask Ayaan before writing bullets** |
+| **Bright Network IEUK** — Programme (July 2025) | Excel data cleaning and analysis, commercial recommendations |
+| **Wiser Academy** — Brand Ambassador | Commercial awareness, communication, promotion. **Bullets not preserved — ask Ayaan, don't reconstruct** |
+| **Schuh** — Sales Team Lead | Client-facing communication, consultative/needs-based selling, relationship building, coaching. Useful for Client Group, sales, relationship management, wealth management |
+
+Two rules when drawing on this: never invent bullets for the entries flagged as not
+preserved (Wiser, Barclays insight day) — ask instead. And treat insight days as table
+stakes on finance applications: they signal interest but don't differentiate, so they
+belong in `ADDITIONAL INFORMATION` as an "Insight Programmes" line rather than
+displacing a real experience block with a quantified achievement.
+
 ## Writing cover letters, CV rewrites, and application answers
 
 Applies to any cover letter, application form answer, LinkedIn/email outreach, CV
