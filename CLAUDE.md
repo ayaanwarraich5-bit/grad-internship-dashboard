@@ -98,7 +98,14 @@ never really work there and was removed.
    fits. Keep the original upload as `original-<filename>`, never delete it.
 5. Save the final file as `Ayaan.Warraich.<FIRM>.CV.pdf` in `uploads/<id>/` and write
    `cv`, `cvFile`, and `cvAnalysis: {score, summary, action, analyzedAt}` (`action` is
-   `"renamed"` or `"reworked_and_renamed"`) into `data.json`. The open dashboard picks
+   `"renamed"` or `"reworked_and_renamed"`) into `data.json`. **`cvFile` isn't in the
+   PATCH endpoint's editable-fields list** (it's normally only set by the upload route),
+   so update it via `app.load_data()`/`app.save_data()` directly rather than the API —
+   `cv` and `cvAnalysis` can go through PATCH fine. Also verify page count yourself with
+   `pypdf` after a short delay rather than trusting a page count read immediately after
+   `render_cv_pdf()` returns — the headless browser's PDF write can lag slightly behind
+   the subprocess exiting (a real race hit once: read back 66KB when the file was really
+   70KB and 2 pages). The open dashboard picks
    it up within a few seconds via its poll — no need to tell it to refresh.
 
 ### AI: find roles is also chat-only, not a button

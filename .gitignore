@@ -7,3 +7,6 @@ venv/
 
 # Real CV files stay local — they're personal documents, not source.
 uploads/
+
+# Local Claude Code session state, not project source.
+.claude/
