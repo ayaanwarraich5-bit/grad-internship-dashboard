@@ -202,7 +202,7 @@ function renderTodos() {
     // Stage-gated, so rejecting a row clears its chores without editing the data.
     if (!TASK_STAGES.has(row.stage)) continue;
     for (const [key, label] of TASKS) {
-      if ((row.tasks || {})[key] === 'todo') items.push({ row, label });
+      if ((row.tasks || {})[key] === 'todo') items.push({ row, key, label });
     }
   }
   // Soonest deadline first; undated last, since those can't be missed on a date.
@@ -210,17 +210,23 @@ function renderTodos() {
     (a.row.dateISO || '9999-99-99').localeCompare(b.row.dateISO || '9999-99-99'));
 
   const host = $('#todos');
+  const counter = $('#todo-count');
+  counter.textContent = items.length ? items.length : '';
+  counter.classList.toggle('on', items.length > 0);
+
   if (!items.length) {
     host.innerHTML = '<p style="margin:0">Nothing outstanding. Anything you mark ' +
       '“to do” on a live application shows up here.</p>';
     return;
   }
-  host.innerHTML = items.map(({ row, label }) => {
+  host.innerHTML = items.map(({ row, key, label }) => {
     const days = row.dateISO ? daysUntil(row.dateISO) : null;
     const when = days === null
       ? '<span class="dd">no date</span>'
       : `<span class="dd ${days <= 14 ? 'soon' : ''}">${countdown(days)}</span>`;
     return `<div class="dl-item todo-item" data-goto="${esc(row.id)}">
+      <button class="tick" type="button" data-done="${esc(key)}" data-row="${esc(row.id)}"
+        title="Mark done" aria-label="Mark ${esc(label)} for ${esc(row.company)} as done"></button>
       <span class="co">${esc(row.company)}<small>${esc(label)}</small></span>
       ${when}
     </div>`;
@@ -729,8 +735,21 @@ async function poll() {
   adopt(next);
 }
 
-/* Jump from a to-do straight to the row it belongs to. */
-$('#todos').addEventListener('click', (event) => {
+$('#todos').addEventListener('click', async (event) => {
+  // Ticking it off marks it done and drops it from the list.
+  const tick = event.target.closest('.tick');
+  if (tick) {
+    event.stopPropagation();
+    const id = tick.dataset.row;
+    const row = rows.find((r) => r.id === id);
+    if (!row) return;
+    row.tasks = { ...(row.tasks || {}), [tick.dataset.done]: 'done' };
+    await patch(id, { tasks: row.tasks });
+    renderAll();
+    return;
+  }
+
+  // Otherwise jump to the row it belongs to.
   const item = event.target.closest('[data-goto]');
   if (!item) return;
   const row = sections.querySelector(`.row[data-id="${CSS.escape(item.dataset.goto)}"]`);
