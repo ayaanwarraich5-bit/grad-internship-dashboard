@@ -123,6 +123,20 @@ don't differentiate. Put them on an "Insight Programmes" line under ADDITIONAL
 INFORMATION rather than letting one displace a real experience block with a
 quantified achievement.
 
+**Items held off the CV are role-triggered, not a standing gap.** The base CV as it
+stands is the default. CapitOx, and the Barclays, UBS and HSBC insight days, go on only
+when the specific role justifies the space they cost:
+
+- **CapitOx** — only for M&A, transaction or valuation-flavoured roles. On a
+  client-facing AM or private banking application it is off-target, and that space
+  works harder on NEFS or the Aberdeen client-model work.
+- **Insight days** — only where the firm matches the application (a Barclays
+  application earns the Barclays insight day), or where the role is private banking or
+  wealth and the UBS one carries real weight. Otherwise leave them off.
+
+Propose one of these only when the posting justifies it, and say why. Never add them as
+a blanket fix.
+
 ---
 
 ## CV editing rules
