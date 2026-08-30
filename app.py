@@ -32,7 +32,12 @@ ALLOWED_EXT = {".pdf", ".doc", ".docx"}
 EDITABLE_FIELDS = {
     "company", "role", "sector", "stage", "status", "deadlineLabel", "dateISO",
     "sourceUrl", "notes", "cv", "cvAnalysis", "subRoles", "selectedProgramme",
+    "tasks",
 }
+# Per-row assessment tracking. A task is absent when the application doesn't have one,
+# "todo" when it's outstanding, "done" once sat.
+VALID_TASKS = {"oa", "hirevue"}
+VALID_TASK_STATES = {"todo", "done"}
 VALID_STAGES = {"watchlist", "applied", "online_assessment", "hirevue", "interview",
                 "assessment_centre", "awaiting", "offer", "rejected"}
 # Earlier versions had coarser stages; map them so old data and any stale browser tab
@@ -210,6 +215,19 @@ def api_update(app_id):
                     return jsonify({"error": f"invalid status: {value}"}), 400
             if key == "selectedProgramme" and value in (None, {}, ""):
                 row.pop("selectedProgramme", None)
+                continue
+            if key == "tasks":
+                if value in (None, {}, ""):
+                    row.pop("tasks", None)
+                    continue
+                if not isinstance(value, dict):
+                    return jsonify({"error": "tasks must be an object"}), 400
+                cleaned = {k: v for k, v in value.items()
+                           if k in VALID_TASKS and v in VALID_TASK_STATES}
+                if cleaned:
+                    row["tasks"] = cleaned
+                else:
+                    row.pop("tasks", None)
                 continue
             row[key] = value
         save_data(rows)

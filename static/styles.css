@@ -239,6 +239,34 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .deadline .days.soon { color: var(--st-awaiting); font-weight: 600; }
 .deadline a { font-family: var(--sans); }
 
+/* ── assessment tasks ───────────────────────────────────────────────────── */
+.tasks { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 10px; }
+.task {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid var(--line); border-radius: 999px;
+  padding: 4px 6px 4px 12px; background: var(--surface);
+}
+.task-lbl {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--ink-faint); white-space: nowrap;
+}
+.task select {
+  background: transparent; border: none; border-radius: 999px;
+  font-size: 12px; padding: 2px 4px; cursor: pointer; color: var(--ink-muted);
+}
+.task select:focus { outline: none; }
+.task.is-todo { background: var(--st-awaiting-soft); border-color: var(--st-awaiting); }
+.task.is-todo .task-lbl, .task.is-todo select { color: var(--st-awaiting); font-weight: 600; }
+.task.is-done { background: var(--st-offer-soft); border-color: var(--st-offer); }
+.task.is-done .task-lbl, .task.is-done select { color: var(--st-offer); }
+
+.todo-item { cursor: pointer; }
+.todo-item:hover .co { color: var(--accent); }
+.row.flash {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+  transition: outline-color .4s ease;
+}
+
 .notes {
   width: 100%; background: var(--paper); border: 1px solid var(--line);
   border-radius: 10px; padding: 9px 11px; font-size: 13px; line-height: 1.5;

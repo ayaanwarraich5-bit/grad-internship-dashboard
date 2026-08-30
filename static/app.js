@@ -29,6 +29,17 @@ const SECTIONS = [
   { type: 'backup',   title: 'Backup — pensions, insurance & consulting', addable: true },
 ];
 
+// Assessments worth tracking separately from the stage: being *at* the online
+// assessment stage doesn't say whether you've actually sat it.
+const TASKS = [
+  ['oa', 'Online assessment'],
+  ['hirevue', 'HireVue'],
+];
+// Only ask once an application is live and still running — a watchlist row has no
+// assessment yet, and a rejected or offered one no longer needs chasing.
+const TASK_STAGES = new Set(
+  ['applied', 'online_assessment', 'hirevue', 'interview', 'assessment_centre', 'awaiting']);
+
 const TYPE_FILTERS = [['all', 'All'], ['grad', 'Grad schemes'], ['intern', 'Internships'], ['backup', 'Backup']];
 const STATUS_FILTERS = [['any', 'Any'], ['open', 'Open now'], ['not_yet_open', 'Not open yet'], ['unknown', 'Unconfirmed']];
 
@@ -185,6 +196,37 @@ function renderFilters() {
   build($('#f-status'), STATUS_FILTERS, fStatus, 'status');
 }
 
+function renderTodos() {
+  const items = [];
+  for (const row of rows) {
+    // Stage-gated, so rejecting a row clears its chores without editing the data.
+    if (!TASK_STAGES.has(row.stage)) continue;
+    for (const [key, label] of TASKS) {
+      if ((row.tasks || {})[key] === 'todo') items.push({ row, label });
+    }
+  }
+  // Soonest deadline first; undated last, since those can't be missed on a date.
+  items.sort((a, b) =>
+    (a.row.dateISO || '9999-99-99').localeCompare(b.row.dateISO || '9999-99-99'));
+
+  const host = $('#todos');
+  if (!items.length) {
+    host.innerHTML = '<p style="margin:0">Nothing outstanding. Anything you mark ' +
+      '“to do” on a live application shows up here.</p>';
+    return;
+  }
+  host.innerHTML = items.map(({ row, label }) => {
+    const days = row.dateISO ? daysUntil(row.dateISO) : null;
+    const when = days === null
+      ? '<span class="dd">no date</span>'
+      : `<span class="dd ${days <= 14 ? 'soon' : ''}">${countdown(days)}</span>`;
+    return `<div class="dl-item todo-item" data-goto="${esc(row.id)}">
+      <span class="co">${esc(row.company)}<small>${esc(label)}</small></span>
+      ${when}
+    </div>`;
+  }).join('');
+}
+
 function renderDeadlines() {
   const soon = rows.filter((r) => r.dateISO)
     .sort((a, b) => a.dateISO.localeCompare(b.dateISO))
@@ -264,6 +306,23 @@ function analysisBadge(row) {
   const group = analysis.score >= 7 ? 'offer' : analysis.score >= 5 ? 'awaiting' : 'rejected';
   const verb = analysis.action === 'reworked_and_renamed' ? 'reworked to fit + renamed' : 'renamed';
   return `<span class="badge b-${group}" title="${esc(analysis.summary || '')}">${analysis.score}/10 — ${verb}</span>`;
+}
+
+function tasksHTML(row) {
+  if (!TASK_STAGES.has(row.stage)) return '';
+  const tasks = row.tasks || {};
+  const controls = TASKS.map(([key, label]) => {
+    const state = tasks[key] || '';
+    const opt = (value, text) =>
+      `<option value="${value}"${state === value ? ' selected' : ''}>${text}</option>`;
+    return `<label class="task is-${state || 'na'}">
+      <span class="task-lbl">${label}</span>
+      <select data-act="task" data-task="${key}" aria-label="${label} for ${esc(row.company)}">
+        ${opt('', 'Not required')}${opt('todo', 'To do')}${opt('done', 'Done')}
+      </select>
+    </label>`;
+  }).join('');
+  return `<div class="tasks">${controls}</div>`;
 }
 
 const DOCS = [
@@ -359,6 +418,7 @@ function rowHTML(row) {
         ${armed ? 'Click again to delete' : 'Delete'}</button>`}
     </div>
     <div class="row-extra">
+      ${isPersonal ? '' : tasksHTML(row)}
       <textarea class="notes" data-act="notes" aria-label="Notes for ${esc(row.company)}"
         placeholder="Notes…">${esc(row.notes)}</textarea>
       ${isPersonal ? '' : DOCS.map((spec) => docHTML(row, spec)).join('')}
@@ -421,6 +481,7 @@ function addFormHTML(section) {
 function renderAll() {
   renderStats();
   renderPipeline();
+  renderTodos();
   renderDeadlines();
   renderSections();
 }
@@ -438,6 +499,19 @@ sections.addEventListener('change', async (event) => {
     const row = rows.find((r) => r.id === id);
     if (row) row.stage = target.value;
     await patch(id, { stage: target.value });
+    renderAll();
+    return;
+  }
+
+  if (article && act === 'task') {
+    const id = article.dataset.id;
+    const row = rows.find((r) => r.id === id);
+    if (!row) return;
+    const next = { ...(row.tasks || {}) };
+    if (target.value) next[target.dataset.task] = target.value;
+    else delete next[target.dataset.task];
+    row.tasks = Object.keys(next).length ? next : undefined;
+    await patch(id, { tasks: row.tasks || null });
     renderAll();
     return;
   }
@@ -654,6 +728,20 @@ async function poll() {
   if (JSON.stringify(next) === serialised) return;
   adopt(next);
 }
+
+/* Jump from a to-do straight to the row it belongs to. */
+$('#todos').addEventListener('click', (event) => {
+  const item = event.target.closest('[data-goto]');
+  if (!item) return;
+  const row = sections.querySelector(`.row[data-id="${CSS.escape(item.dataset.goto)}"]`);
+  if (!row) {
+    toast('That row is hidden by the current filters.');
+    return;
+  }
+  row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  row.classList.add('flash');
+  setTimeout(() => row.classList.remove('flash'), 1200);
+});
 
 /* ── search ───────────────────────────────────────────────────────────── */
 const searchInput = $('#search');
