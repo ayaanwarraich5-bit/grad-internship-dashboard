@@ -294,7 +294,10 @@ def cv_download(app_id):
     path = os.path.join(row_dir(app_id), filename)
     if not os.path.isfile(path):
         return jsonify({"error": "file missing on disk"}), 404
-    return send_file(path, as_attachment=True, download_name=filename)
+    # ?inline=1 lets the browser render the PDF in a tab instead of forcing a save,
+    # which is what you want when reviewing a CV rather than filing it.
+    inline = request.args.get("inline") == "1"
+    return send_file(path, as_attachment=not inline, download_name=filename)
 
 
 @app.delete("/api/applications/<app_id>/cv")

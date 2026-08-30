@@ -293,6 +293,8 @@ function cvHTML(row) {
       ${badge}
     </div>
     <div class="cv-line" style="margin-top:8px">
+      ${/\.pdf$/i.test(file.filename)
+        ? '<button class="mini primary" data-act="cv-view" type="button">View</button>' : ''}
       <button class="mini" data-act="cv-download" type="button">Download</button>
       <button class="mini" data-act="cv-remove" type="button">Remove</button>
     </div>
@@ -523,6 +525,11 @@ sections.addEventListener('click', async (event) => {
   if (act === 'drop') {
     const input = article.querySelector('[data-act="file"]');
     if (input && !event.target.closest('button')) input.click();
+    return;
+  }
+
+  if (act === 'cv-view') {
+    window.open(`/api/applications/${id}/cv?inline=1`, '_blank', 'noopener');
     return;
   }
 
