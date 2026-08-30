@@ -92,21 +92,56 @@ never really work there and was removed.
    `role`/`sector`/`notes` and say so in the summary.
 3. Score 1–10 for fit to *that specific role* (tailoring, not general CV quality) against
    the strategy in section 2 above.
-4. Below **7/10**, or if the content doesn't already fit one side of A4, rewrite it
-   truthfully (rephrase/cut, never invent) and render it with `app.render_cv_pdf()` —
-   verified one-page A4 via headless Edge/Chrome, retried at tighter spacing until it
-   fits. Keep the original upload as `original-<filename>`, never delete it.
-5. Save the final file as `Ayaan.Warraich.<FIRM>.CV.pdf` in `uploads/<id>/` and write
-   `cv`, `cvFile`, and `cvAnalysis: {score, summary, action, analyzedAt}` (`action` is
-   `"renamed"` or `"reworked_and_renamed"`) into `data.json`. **`cvFile` isn't in the
-   PATCH endpoint's editable-fields list** (it's normally only set by the upload route),
-   so update it via `app.load_data()`/`app.save_data()` directly rather than the API —
-   `cv` and `cvAnalysis` can go through PATCH fine. Also verify page count yourself with
-   `pypdf` after a short delay rather than trusting a page count read immediately after
-   `render_cv_pdf()` returns — the headless browser's PDF write can lag slightly behind
-   the subprocess exiting (a real race hit once: read back 66KB when the file was really
-   70KB and 2 pages). The open dashboard picks
-   it up within a few seconds via its poll — no need to tell it to refresh.
+4. Below **7/10**, or if the content doesn't already fit one side of A4, rewrite it.
+
+   **Never rebuild the CV in new HTML/CSS or a different template.** Ayaan's own
+   `.docx` has its own real formatting (fonts, spacing, margins, layout) — edit the
+   bullet text of that exact file in place with `python-docx` and re-export it, so the
+   result looks identical to his template with only the wording changed. Concretely:
+   - Open the original with `docx.Document(path)`.
+   - For each `RELEVANT EXPERIENCE` bullet paragraph you're rewording, set
+     `paragraph.runs[0].text = new_text`, then delete every other run in that paragraph
+     (`for r in p.runs[1:]: r._element.getparent().remove(r._element)`) — bullets are
+     often split across several runs from past edits that all share identical
+     formatting, so keeping just the first run and clearing the rest preserves the
+     exact font/bold/italic with no visible change.
+   - Only touch bullets (the accomplishment lines) — never section headers, job
+     titles, company names, dates, education, skills, or contact info.
+   - Keep each replacement bullet at or under the original bullet's character count.
+     The original CV has essentially zero slack (it fills exactly one page with no
+     spare line) — a replacement just a little longer than the original can flip a
+     line-wrap from 1 line to 2, and that alone is enough to push the last line of the
+     whole CV onto a second page. This actually happened once: shortening nine bullets
+     by ~200 characters total still didn't help, because a single +16-character bullet
+     wrapped onto a second line — the fix was shortening that one bullet back down,
+     not shortening things elsewhere.
+   - Truthfully (rephrase/cut, never invent) reframe wording to mirror the target
+     posting's own language (e.g. "client relationship", "business case") where it's
+     honestly supported by what Ayaan actually did.
+   - Export to PDF via Word COM (`New-Object -ComObject Word.Application`, `.SaveAs`
+     with format 17) — this uses the real installed Word engine, not a browser
+     approximation, so the PDF looks exactly like the source .docx. Verify the ACTUAL
+     page count via `$doc.ComputeStatistics(2)` before export and `pypdf`'s
+     `len(PdfReader(path).pages)` after, waiting for the file size to stop changing
+     first — Word COM's SaveAs can return before the file is fully flushed, and a
+     stale read once reported 1 page for a file that was really 2 (66KB read vs 70KB
+     on disk). Always kill any lingering `WINWORD` process afterward
+     (`Get-Process WINWORD | Stop-Process -Force`) since COM automation can leave it
+     running. Keep the original upload as `original-<filename>`, never delete it.
+5. Save the final file as `Ayaan.Warraich.<FIRM>.CV.pdf` (rendered PDF) in
+   `uploads/<id>/` — keep the edited `.docx` alongside it too, not just the PDF — and
+   write `cv`, `cvFile`, and `cvAnalysis: {score, summary, action, analyzedAt}`
+   (`action` is `"renamed"` or `"reworked_and_renamed"`) into `data.json`.
+   **`cvFile` isn't in the PATCH endpoint's editable-fields list** (it's normally only
+   set by the upload route), so update it via `app.load_data()`/`app.save_data()`
+   directly rather than the API — `cv` and `cvAnalysis` can go through PATCH fine. The
+   open dashboard picks it up within a few seconds via its poll — no need to tell it
+   to refresh.
+
+`app.render_cv_pdf()` (HTML+CSS → headless-browser PDF) still exists in `app.py` but
+should only be used as a last resort when there's no real source document to edit in
+place — e.g. the user pastes CV text directly with no file. Whenever a real `.docx` is
+attached, always prefer editing it directly as above.
 
 ### AI: find roles is also chat-only, not a button
 
