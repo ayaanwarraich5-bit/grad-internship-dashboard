@@ -6,7 +6,6 @@ read and write directly. Real CV files live in uploads/<id>/, never base64 in JS
 Run:  python app.py   ->  http://127.0.0.1:5173
 """
 
-import io
 import json
 import os
 import re
@@ -15,6 +14,7 @@ import subprocess
 import sys
 import tempfile
 import threading
+import time
 import urllib.request
 from datetime import datetime, timezone
 
@@ -33,8 +33,11 @@ EDITABLE_FIELDS = {
     "company", "role", "sector", "stage", "status", "deadlineLabel", "dateISO",
     "sourceUrl", "notes", "cv", "cvAnalysis", "subRoles", "selectedProgramme",
 }
-VALID_STAGES = {"watchlist", "applied", "testing", "interview", "final",
-                "awaiting", "offer", "rejected"}
+VALID_STAGES = {"watchlist", "applied", "online_assessment", "hirevue", "interview",
+                "assessment_centre", "awaiting", "offer", "rejected"}
+# Earlier versions had coarser stages; map them so old data and any stale browser tab
+# still work rather than failing validation.
+LEGACY_STAGES = {"testing": "online_assessment", "final": "assessment_centre"}
 VALID_STATUSES = {"open", "not_yet_open", "unknown"}
 VALID_TYPES = {"personal", "grad", "intern", "backup"}
 
@@ -48,7 +51,11 @@ _lock = threading.Lock()
 
 def load_data():
     with open(DATA_FILE, "r", encoding="utf-8") as fh:
-        return json.load(fh)
+        rows = json.load(fh)
+    for row in rows:
+        if row.get("stage") in LEGACY_STAGES:
+            row["stage"] = LEGACY_STAGES[row["stage"]]
+    return rows
 
 
 def save_data(rows):
@@ -68,7 +75,19 @@ def save_data(rows):
     try:
         with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
             fh.write(body)
-        os.replace(tmp, DATA_FILE)
+        # This project lives in a OneDrive folder, and OneDrive (like AV scanners) takes
+        # a brief exclusive lock on data.json while it syncs. That makes os.replace fail
+        # with PermissionError often enough to lose a save, so retry before giving up.
+        last_error = None
+        for delay in (0, 0.05, 0.15, 0.3, 0.6, 1.0):
+            if delay:
+                time.sleep(delay)
+            try:
+                os.replace(tmp, DATA_FILE)
+                return
+            except PermissionError as exc:
+                last_error = exc
+        raise last_error
     except Exception:
         if os.path.exists(tmp):
             os.unlink(tmp)
@@ -180,8 +199,10 @@ def api_update(app_id):
         for key, value in payload.items():
             if key not in EDITABLE_FIELDS:
                 continue
-            if key == "stage" and value not in VALID_STAGES:
-                return jsonify({"error": f"invalid stage: {value}"}), 400
+            if key == "stage":
+                value = LEGACY_STAGES.get(value, value)
+                if value not in VALID_STAGES:
+                    return jsonify({"error": f"invalid stage: {value}"}), 400
             if key == "status":
                 if row.get("type") == "personal":
                     continue

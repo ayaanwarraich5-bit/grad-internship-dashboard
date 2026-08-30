@@ -58,7 +58,7 @@ when a specific role's description makes one more relevant. Judge per role.
 | **Lopian Gross Barnett** — Audit & Tax Intern | Accounting, audit, financial information, client work. Tax filings, reconciliations, director-level reports; Corporate Audit across retail/hospitality/owner-managed; progressed to client reviews and recommendations |
 | **UBS Wealth Management** — Insight Day (Sept 2025) | Portfolio construction, asset allocation, risk profiling, client advisory, tailoring strategy to individual client objectives. **Best item for private banking / wealth management** |
 | **HSBC** — Investment Banking Insight | IB coverage and Markets exposure, corporate financing, evaluating financing options, presentation materials |
-| **Barclays** — Insight Day | Banking exposure / commercial awareness. **Detail not preserved — ask Ayaan before writing bullets** |
+| **Barclays** — Insight Day | Built a model investment portfolio (asset allocation and selection to a defined risk profile); explored Private Banking & Wealth Management and how Barclays delivers tailored investment solutions to HNW clients; Barclays strategy, culture and operating model; networking on relationship management. **Strongest supporting item for any Barclays application** |
 | **Bright Network IEUK** — Programme (July 2025) | Excel data cleaning and analysis, commercial recommendations |
 | **Wiser Academy** — Brand Ambassador | Commercial awareness, communication, promotion. **Bullets not preserved — ask Ayaan, don't reconstruct** |
 | **Schuh** — Sales Team Lead | Client-facing communication, consultative/needs-based selling, relationship building, coaching. Useful for Client Group, sales, relationship management, wealth management |
@@ -73,6 +73,9 @@ displacing a real experience block with a quantified achievement.
 
 Applies to any cover letter, application form answer, LinkedIn/email outreach, CV
 bullet, or interview/assessment prep — not just the CV-analysis flow above.
+
+(Some of the guidance below was pasted in referring to "Jay". That's Ayaan — treat any
+such reference as him.)
 
 **Recruiter persona.** Judge and write the work as a recruiter at that specific
 company and industry would — not a generic careers advisor, and not one all-purpose

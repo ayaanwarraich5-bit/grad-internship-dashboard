@@ -3,14 +3,15 @@
    makes from chat show up here without a refresh. */
 
 const STAGES = [
-  ['watchlist',  'Watchlist',  'neutral'],
-  ['applied',    'Applied',    'active'],
-  ['testing',    'Testing',    'active'],
-  ['interview',  'Interview',  'active'],
-  ['final',      'Final',      'active'],
-  ['awaiting',   'Awaiting',   'awaiting'],
-  ['offer',      'Offer',      'offer'],
-  ['rejected',   'Rejected',   'rejected'],
+  ['watchlist',         'Watchlist',         'neutral'],
+  ['applied',           'Applied',           'active'],
+  ['online_assessment', 'Online Assessment', 'active'],
+  ['hirevue',           'HireVue',           'active'],
+  ['interview',         'Interview',         'active'],
+  ['assessment_centre', 'Assessment Centre', 'active'],
+  ['awaiting',          'Awaiting',          'awaiting'],
+  ['offer',             'Offer',             'offer'],
+  ['rejected',          'Rejected',          'rejected'],
 ];
 const STAGE_GROUP = Object.fromEntries(STAGES.map(([k, , g]) => [k, g]));
 const STAGE_LABEL = Object.fromEntries(STAGES.map(([k, l]) => [k, l]));
@@ -48,6 +49,7 @@ const pref = {
 };
 let fType = pref.get('gd.filter.type', 'all');
 let fStatus = pref.get('gd.filter.status', 'any');
+let query = '';   // search text — transient, deliberately not persisted
 
 /* ── theme ────────────────────────────────────────────────────────────── */
 function applyTheme(mode) {
@@ -341,6 +343,7 @@ function rowHTML(row) {
     <div class="row-side">
       ${statusBadge}
       ${deadline}
+      <span class="side-lbl">Progress</span>
       <select class="stage" data-act="stage" aria-label="Stage for ${esc(row.company)}">${stageOptions}</select>
       ${isPersonal ? '' : `<button class="del ${armed ? 'arm' : ''}" data-act="del" type="button">
         ${armed ? 'Click again to delete' : 'Delete'}</button>`}
@@ -354,16 +357,27 @@ function rowHTML(row) {
 }
 
 /* ── sections ─────────────────────────────────────────────────────────── */
+function matchesQuery(row, q) {
+  if (!q) return true;
+  return [row.company, row.role, row.sector]
+    .some((v) => String(v || '').toLowerCase().includes(q));
+}
+
 function renderSections() {
   const host = $('#sections');
   const parts = [];
+  const q = query.trim().toLowerCase();
 
   for (const section of SECTIONS) {
     if (fType !== 'all' && fType !== section.type) continue;
 
     const all = rows.filter((r) => r.type === section.type);
     const visible = all.filter((r) =>
-      fStatus === 'any' || section.type === 'personal' || r.status === fStatus);
+      (fStatus === 'any' || section.type === 'personal' || r.status === fStatus)
+      && matchesQuery(r, q));
+
+    // While searching, an empty section is just noise — drop it entirely.
+    if (q && !visible.length) continue;
 
     const count = visible.length === all.length
       ? `${all.length}`
@@ -374,11 +388,13 @@ function renderSections() {
       <div class="rows">${visible.length
         ? visible.map(rowHTML).join('')
         : '<p class="empty">Nothing here under the current filters.</p>'}</div>
-      ${section.addable ? addFormHTML(section) : ''}
+      ${section.addable && !q ? addFormHTML(section) : ''}
     </section>`);
   }
 
-  host.innerHTML = parts.join('');
+  host.innerHTML = parts.length
+    ? parts.join('')
+    : `<p class="empty">Nothing matches “${esc(query.trim())}”.</p>`;
 }
 
 function addFormHTML(section) {
@@ -617,6 +633,20 @@ async function poll() {
   if (JSON.stringify(next) === serialised) return;
   adopt(next);
 }
+
+/* ── search ───────────────────────────────────────────────────────────── */
+const searchInput = $('#search');
+searchInput.addEventListener('input', () => {
+  query = searchInput.value;
+  renderSections();
+});
+searchInput.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    searchInput.value = '';
+    query = '';
+    renderSections();
+  }
+});
 
 /* ── boot ─────────────────────────────────────────────────────────────── */
 (async function start() {
