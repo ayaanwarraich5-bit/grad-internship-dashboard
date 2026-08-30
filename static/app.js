@@ -268,9 +268,6 @@ function analysisBadge(row) {
 
 function cvHTML(row) {
   const file = row.cvFile;
-  const working = busy.has(row.id);
-  const error = rowErrors.get(row.id);
-  const errHTML = error ? `<div class="cv-err">${esc(error)}</div>` : '';
   const analysis = row.cvAnalysis;
   const badge = analysisBadge(row);
 
@@ -282,12 +279,14 @@ function cvHTML(row) {
       Drop a CV here (PDF/DOC) or click to choose
     </div>
     ${badge ? `<div class="cv-line" style="margin-top:8px">${badge}</div>` : ''}
-    ${analysis ? `<div class="cv-summary">${esc(analysis.summary || '')}</div>` : ''}
-    ${errHTML}`;
+    ${analysis ? `<div class="cv-summary">${esc(analysis.summary || '')}</div>` : ''}`;
   }
 
+  // The CV used for this application: whatever a chat-driven analysis last renamed
+  // it to (Ayaan.Warraich.<FIRM>.CV.pdf), or your original upload if none has run yet.
   return `<div class="cvbox has" data-act="drop">
     <input type="file" class="hidden-file" accept=".pdf,.doc,.docx" data-act="file">
+    <div class="cv-label">CV used for this application</div>
     <div class="cv-line">
       <span class="cv-name">${esc(file.filename)}</span>
       <span class="cv-size">${formatBytes(file.size)}</span>
@@ -295,12 +294,9 @@ function cvHTML(row) {
     </div>
     <div class="cv-line" style="margin-top:8px">
       <button class="mini" data-act="cv-download" type="button">Download</button>
-      <button class="mini primary" data-act="cv-analyse" type="button" ${working ? 'disabled' : ''}>
-        ${working ? 'Analysing…' : 'Analyse CV'}</button>
-      <button class="mini" data-act="cv-remove" type="button" ${working ? 'disabled' : ''}>Remove</button>
+      <button class="mini" data-act="cv-remove" type="button">Remove</button>
     </div>
     ${analysis ? `<div class="cv-summary">${esc(analysis.summary || '')}</div>` : ''}
-    ${errHTML}
   </div>`;
 }
 
@@ -334,6 +330,7 @@ function rowHTML(row) {
   const findRoles = (row.type === 'grad' || row.type === 'intern')
     ? `<button class="mini" data-act="find-roles" type="button" ${busy.has(row.id) ? 'disabled' : ''}>
          ${busy.has(row.id) ? 'Working…' : 'Find roles'}</button>` : '';
+  const findRolesError = rowErrors.get(row.id);
 
   return `<article class="row" data-id="${esc(row.id)}">
     <div class="row-main">
@@ -346,6 +343,7 @@ function rowHTML(row) {
         <span class="badge b-${stageGroup}">${esc(STAGE_LABEL[row.stage] || row.stage)}</span>
       </div>
       ${subRolesHTML(row)}
+      ${findRolesError ? `<div class="cv-err">${esc(findRolesError)}</div>` : ''}
     </div>
     <div class="row-side">
       ${statusBadge}
@@ -535,7 +533,6 @@ sections.addEventListener('click', async (event) => {
     return;
   }
 
-  if (act === 'cv-analyse') { runJob(id, 'analyse-cv', 'CV analysed'); return; }
   if (act === 'find-roles') { runJob(id, 'find-roles', 'Roles found'); }
 });
 

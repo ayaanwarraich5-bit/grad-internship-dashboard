@@ -291,6 +291,10 @@ select.stage {
   border-color: var(--accent); background: var(--accent-soft); color: var(--accent);
 }
 .cvbox.has { border-style: solid; text-align: left; }
+.cv-label {
+  font-size: 11px; text-transform: uppercase; letter-spacing: .09em;
+  color: var(--ink-faint); margin-bottom: 6px;
+}
 .cv-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .cv-name {
   font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; flex: 1 1 150px;

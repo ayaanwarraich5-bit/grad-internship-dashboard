@@ -76,17 +76,37 @@ kept as `uploads/<id>/original-<filename>`.
 `dateISO` (or null), `sourceUrl`, `notes`, and optionally `cv`, `cvFile`,
 `cvAnalysis`, `subRoles`, `selectedProgramme`.
 
-### AI endpoints
+### AI: CV analysis is chat-only, not a button
 
-`POST /api/applications/<id>/analyse-cv` and `/find-roles` shell out to the Claude Code
-CLI (`claude -p ... --output-format json`) so they reuse the existing login rather than
-needing an API key. If the CLI isn't on PATH the endpoint returns a clear message saying
-to ask Claude Code in chat instead — the result lands in `data.json` in the same shape
-either way, so the UI doesn't care which path produced it.
+There's no `/analyse-cv` route. It existed once, shelling out to a local Claude CLI —
+but that CLI only ever lived inside the dev environment Claude Code's own tools run
+commands in, never on the machine actually running the browser, so the button could
+never really work there and was removed.
 
-**When asked in chat** to "analyse the CV on the X row", write `cvAnalysis` as
-`{score, summary, action, analyzedAt}` where `action` is `"renamed"` or
-`"reworked_and_renamed"`. When asked to "find the specific roles at X", write `subRoles`
-as `[{name, highlighted, reason, url}]` — capture the **direct application URL** per
-track, not just the name; that link is what lets `selectedProgramme` pin a row to a real
-posting so CV analysis reads the actual job description.
+**When asked in chat** to "analyse the CV on the X row":
+1. Read the attached file from `uploads/<id>/` directly (`app.extract_text()` handles
+   PDF/DOCX extraction, reusable via `python -c "import app; ..."` from this project
+   root).
+2. If `selectedProgramme.url` is set, fetch that posting's text with
+   `app.fetch_posting_text()` and score against it; otherwise fall back to the row's
+   `role`/`sector`/`notes` and say so in the summary.
+3. Score 1–10 for fit to *that specific role* (tailoring, not general CV quality) against
+   the strategy in section 2 above.
+4. Below **7/10**, or if the content doesn't already fit one side of A4, rewrite it
+   truthfully (rephrase/cut, never invent) and render it with `app.render_cv_pdf()` —
+   verified one-page A4 via headless Edge/Chrome, retried at tighter spacing until it
+   fits. Keep the original upload as `original-<filename>`, never delete it.
+5. Save the final file as `Ayaan.Warraich.<FIRM>.CV.pdf` in `uploads/<id>/` and write
+   `cv`, `cvFile`, and `cvAnalysis: {score, summary, action, analyzedAt}` (`action` is
+   `"renamed"` or `"reworked_and_renamed"`) into `data.json`. The open dashboard picks
+   it up within a few seconds via its poll — no need to tell it to refresh.
+
+### AI: find roles is still a button
+
+`POST /api/applications/<id>/find-roles` shells out to the Claude Code CLI
+(`claude -p ... --output-format json`) so it reuses the existing login rather than
+needing an API key. If the CLI isn't reachable the endpoint returns a message pointing
+to chat instead. When asked to "find the specific roles at X", write `subRoles` as
+`[{name, highlighted, reason, url}]` — capture the **direct application URL** per track,
+not just the name; that link is what lets `selectedProgramme` pin a row to a real
+posting so CV analysis (above) can read the actual job description.

@@ -47,29 +47,34 @@ POST   /api/applications/:id/cv          multipart upload, max 15MB, .pdf/.doc/.
 GET    /api/applications/:id/cv          downloads the attached file
 DELETE /api/applications/:id/cv
 
-POST   /api/applications/:id/analyse-cv  fit score + tailored one-page rewrite
 POST   /api/applications/:id/find-roles  researches the firm's actual advertised tracks
 ```
 
-## The AI buttons
+## CV analysis — done in chat, not a button
 
-Both shell out to the Claude Code CLI (`claude -p … --output-format json`) so they reuse
-your existing login rather than needing a separate API key.
+There's no `/analyse-cv` endpoint. Earlier versions shelled out to a locally-installed
+Claude CLI, but that CLI only ever existed inside the dev environment Claude Code runs
+commands in — never on the machine actually running the browser — so the button could
+never really work and was removed.
 
-**Analyse CV** scores 1–10 for how tailored *that* CV is to *that specific posting* — not
+Instead: drag a CV onto a grad/internship row, then just ask Claude Code in chat —
+*"analyse the CV on the Redburn row"*. It reads the file directly (no subprocess, no
+login needed), scores 1–10 for how tailored *that* CV is to *that specific posting* — not
 whether it's a good CV in general. If the row has a programme pinned under **Applying
-for**, the server fetches that page and scores against its real job description; if the
-fetch fails it falls back to the row's notes and says so in the summary. Below **7/10**,
-or if the content doesn't already fit one side of **A4**, Claude rewrites it (truthfully —
-rephrasing and cutting only, never inventing) and it's rendered to a genuinely one-page A4
-PDF via headless Edge/Chrome, tightening the layout and re-rendering until it fits. The
-result is saved as `Ayaan.Warraich.<FIRM>.CV.pdf`, and your original upload is always kept
-alongside it as `original-<filename>`.
+for**, it fetches that page and scores against the real job description; otherwise it
+falls back to the row's notes and says so in the summary. Below **7/10**, or if the
+content doesn't already fit one side of **A4**, it gets rewritten (truthfully — rephrasing
+and cutting only, never inventing) and rendered to a genuinely one-page A4 PDF via
+headless Edge/Chrome, tightening the layout and re-rendering until it fits. The result is
+saved as `Ayaan.Warraich.<FIRM>.CV.pdf` and shown under **CV used for this application**
+on the row; your original upload is always kept alongside it as `original-<filename>`.
+The score badge and summary appear on the page within a few seconds — no refresh needed.
 
-**Find roles** researches the distinct tracks a firm actually advertises (a single Trackr
-line is often nine separate postings) and stores them as starred/unstarred pills on the
-row.
+## Find roles
 
-If the `claude` CLI isn't on your PATH, both buttons return a message telling you to ask
-Claude Code in chat instead — the result lands in `data.json` in the same shape either
-way, so the page doesn't care which path produced it.
+This one still is a button, and still shells out to the Claude CLI (`claude -p …
+--output-format json`) to reuse your existing login. It researches the distinct tracks a
+firm actually advertises (a single Trackr line is often nine separate postings) and
+stores them as starred/unstarred pills on the row. If the CLI isn't reachable, the button
+returns a message pointing you to chat instead — the result lands in `data.json` in the
+same shape either way, so the page doesn't care which path produced it.

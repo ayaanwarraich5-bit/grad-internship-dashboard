@@ -579,145 +579,16 @@ def render_cv_pdf(body_html, out_path):
         shutil.rmtree(workdir, ignore_errors=True)
 
 
-# --------------------------------------------------------- AI: CV analysis
-
-@app.post("/api/applications/<app_id>/analyse-cv")
-def analyse_cv(app_id):
-    with _lock:
-        row = find_row(load_data(), app_id)
-    if row is None:
-        return jsonify({"error": "not found"}), 404
-    cv_file = row.get("cvFile")
-    if not cv_file:
-        return jsonify({"error": "attach a CV first"}), 400
-
-    directory = row_dir(app_id)
-    source_path = os.path.join(directory, cv_file["filename"])
-    if not os.path.isfile(source_path):
-        return jsonify({"error": "the attached file is missing on disk"}), 404
-
-    cv_text, err = extract_text(source_path)
-    if err:
-        return jsonify({"error": err}), 400
-    if not cv_text:
-        return jsonify({"error": "no readable text in that file — is it a scan?"}), 400
-
-    # Prefer the pinned posting's own text; fall back to the row's stored notes.
-    selected = row.get("selectedProgramme") or {}
-    posting_text, fetch_error, posting_source = None, None, None
-    if selected.get("url"):
-        posting_text, fetch_error = fetch_posting_text(selected["url"])
-        posting_source = selected.get("name") or selected["url"]
-
-    if posting_text:
-        role_block = (f"PINNED POSTING — {posting_source}\n"
-                      f"URL: {selected['url']}\n\n{posting_text}")
-    else:
-        role_block = (f"Company: {row.get('company')}\n"
-                      f"Role: {row.get('role')}\n"
-                      f"Sector: {row.get('sector')}\n"
-                      f"Researched notes: {row.get('notes')}")
-
-    firm = firm_slug(row.get("company"))
-    prompt = f"""{STRATEGY}
-
-You are scoring how well a CV is TAILORED TO ONE SPECIFIC ROLE. This is not a general
-"is this a good CV" review — tailoring to this posting is the whole point.
-
-=== ROLE ===
-{role_block}
-
-=== CV TEXT ===
-{cv_text[:14000]}
-
-Return ONLY a JSON object, no prose around it, with exactly these keys:
-  "score": integer 1-10, how tailored this CV is to THIS role
-  "reasons": array of 2-3 short concrete strings justifying the score
-  "fitsOnePage": true/false, whether the content already fits one side of A4
-  "summary": one sentence, under 200 characters, summarising the verdict
-  "rewrite": if score < 7 OR fitsOnePage is false, an HTML fragment (no <html>,
-     <head> or <body> tags; use h1/h2/h3/p/ul/li and class="contact"/"meta" only)
-     containing a rewritten CV trimmed and reprioritised to fit ONE side of A4 and
-     tailored to this role. Otherwise omit this key or set it to null.
-
-Hard rule for any rewrite: stay strictly truthful to the original CV. Rephrase,
-reorder and cut. NEVER invent experience, employers, dates, grades or skills."""
-
-    result, err = run_claude(prompt)
-    if err == "CLI_MISSING":
-        return jsonify({"error": CLI_MISSING.format(company=row.get("company"))}), 503
-    if err:
-        return jsonify({"error": err}), 502
-
-    try:
-        score = max(1, min(10, int(result.get("score"))))
-    except (TypeError, ValueError):
-        return jsonify({"error": "Claude didn't return a usable score"}), 502
-
-    reasons = [str(r) for r in (result.get("reasons") or [])][:3]
-    fits_one_page = bool(result.get("fitsOnePage"))
-    rewrite_html = result.get("rewrite") or None
-    summary = str(result.get("summary") or "; ".join(reasons))[:400]
-
-    final_name = f"Ayaan.Warraich.{firm}.CV.pdf"
-    final_path = os.path.join(directory, final_name)
-    action = "renamed"
-    notes = []
-
-    if fetch_error:
-        notes.append(f"couldn't load the linked posting ({fetch_error}) — scored against "
-                     "the saved role notes instead")
-    elif posting_text:
-        notes.append(f"scored against the pinned posting: {posting_source}")
-
-    needs_rewrite = score < 7 or not fits_one_page
-    if needs_rewrite and rewrite_html:
-        original_name = f"original-{cv_file['filename']}"
-        original_path = os.path.join(directory, original_name)
-        if not os.path.exists(original_path):
-            shutil.copyfile(source_path, original_path)
-
-        render_error = render_cv_pdf(rewrite_html, final_path)
-        if render_error:
-            notes.append(f"kept your original — {render_error}")
-        else:
-            action = "reworked_and_renamed"
-    elif needs_rewrite:
-        notes.append("Claude flagged a rewrite as needed but returned none")
-
-    if action == "renamed":
-        if os.path.splitext(source_path)[1].lower() != ".pdf":
-            final_name = (f"Ayaan.Warraich.{firm}.CV"
-                          f"{os.path.splitext(source_path)[1].lower()}")
-            final_path = os.path.join(directory, final_name)
-        if os.path.abspath(source_path) != os.path.abspath(final_path):
-            shutil.move(source_path, final_path)
-
-    if notes:
-        summary = summary.rstrip(".") + ". " + " ".join(notes) + "."
-
-    with _lock:
-        rows = load_data()
-        row = find_row(rows, app_id)
-        if row is None:
-            return jsonify({"error": "not found"}), 404
-        row["cv"] = final_name
-        row["cvFile"] = {
-            "filename": final_name,
-            "size": os.path.getsize(final_path),
-            "uploadedAt": now_iso(),
-        }
-        row["cvAnalysis"] = {
-            "score": score,
-            "summary": summary[:600],
-            "action": action,
-            "analyzedAt": now_iso(),
-        }
-        save_data(rows)
-    return jsonify(row)
-
-
 # --------------------------------------------------------- AI: find roles
+#
+# CV analysis has no HTTP route: the button that used to call one shelled out to a
+# local Claude CLI that only ever worked from inside this dev environment, never from
+# the browser on the user's own machine, so it was removed. The fix is to just ask
+# Claude Code in chat ("analyse the CV on the X row") - it reads the file, reasons
+# about fit itself with no subprocess call needed, and writes cvAnalysis/cvFile
+# straight into data.json. extract_text(), fetch_posting_text() and render_cv_pdf()
+# above remain as the reusable pieces for that: read the CV, read the pinned posting,
+# and render a verified one-page A4 rewrite the same way this route used to.
 
 @app.post("/api/applications/<app_id>/find-roles")
 def find_roles(app_id):
