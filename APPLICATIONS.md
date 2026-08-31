@@ -74,7 +74,9 @@ anything M&A, transaction or valuation flavoured*
 - Evaluated synergies, strategic rationale and buyer suitability; presented a
   shortlist and a football-field valuation summary.
 
-**Lopian Gross Barnett — Audit & Tax Intern**
+**Lopian Gross Barnett — Audit & Tax Intern** (Manchester, Jul 2023) — *about a month;
+short, so keep it to two bullets and never imply longer. Strongest item for forensic,
+audit or disputes work, where testing evidence against criteria beats equity research*
 - Tax filings, reconciliations and director-level reports.
 - Corporate Audit engagements across retail, hospitality and owner-managed businesses.
 - Progressed from supporting procedures to owning client reviews, testing and
