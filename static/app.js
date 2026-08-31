@@ -612,7 +612,11 @@ sections.addEventListener('click', async (event) => {
   }
 
   if (act === 'drop') {
-    const input = article.querySelector('[data-act="file"]');
+    // Scope to *this* box - a row has one file input per document kind (CV, cover
+    // letter), and querying from the row picked whichever came first in the DOM
+    // regardless of which box was actually clicked.
+    const zone = target.closest('.cvbox');
+    const input = zone && zone.querySelector('[data-act="file"]');
     if (input && !event.target.closest('button')) input.click();
     return;
   }
