@@ -88,6 +88,17 @@ anything M&A, transaction or valuation flavoured*
 - Barclays' strategy, culture and operating model, and how divisions work together.
 - Networking on career paths and relationship management.
 
+**PIMCO Prep — Spring Insight Programme** (Apr 2025) — *the only fixed income exposure
+on record, and firm-specific evidence for any PIMCO application*
+- Competitively selected; exposure to asset management and global markets.
+- Sessions with investment professionals on asset allocation, macro strategy and fixed
+  income markets.
+- Q&A with senior leaders and campus recruiters on how global shocks and interest rate
+  cycles feed through to investment decisions.
+- Applied the analysis to running his own trading portfolio. *(Verify before this goes
+  on a CV. If the portfolio is real and sustained it earns its own line for any
+  markets-facing role; if it was a one-off it stays off.)*
+
 **UBS Wealth Management — Insight Day** (Sept 2025) — *best generic item for private
 banking / wealth management*
 - Portfolio construction, asset allocation and risk profiling, and how strategies are
