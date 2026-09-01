@@ -42,6 +42,7 @@ const TASK_STAGES = new Set(
 
 const TYPE_FILTERS = [['all', 'All'], ['grad', 'Grad schemes'], ['intern', 'Internships'], ['backup', 'Backup']];
 const STATUS_FILTERS = [['any', 'Any'], ['open', 'Open now'], ['not_yet_open', 'Not open yet'], ['unknown', 'Unconfirmed']];
+const APPLIED_FILTERS = [['any', 'Any'], ['yes', 'Applied'], ['no', 'Not applied yet']];
 
 let rows = [];
 let serialised = '';
@@ -60,6 +61,8 @@ const pref = {
 };
 let fType = pref.get('gd.filter.type', 'all');
 let fStatus = pref.get('gd.filter.status', 'any');
+let fApplied = pref.get('gd.filter.applied', 'any');
+const hasApplied = (row) => row.stage !== 'watchlist';
 let query = '';   // search text — transient, deliberately not persisted
 
 /* ── theme ────────────────────────────────────────────────────────────── */
@@ -185,7 +188,8 @@ function renderFilters() {
       b.setAttribute('aria-pressed', String(current === value));
       b.addEventListener('click', () => {
         if (kind === 'type') { fType = value; pref.set('gd.filter.type', value); }
-        else { fStatus = value; pref.set('gd.filter.status', value); }
+        else if (kind === 'status') { fStatus = value; pref.set('gd.filter.status', value); }
+        else { fApplied = value; pref.set('gd.filter.applied', value); }
         renderFilters();
         renderSections();
       });
@@ -194,6 +198,7 @@ function renderFilters() {
   };
   build($('#f-type'), TYPE_FILTERS, fType, 'type');
   build($('#f-status'), STATUS_FILTERS, fStatus, 'status');
+  build($('#f-applied'), APPLIED_FILTERS, fApplied, 'applied');
 }
 
 function renderTodos() {
@@ -450,6 +455,8 @@ function renderSections() {
     const all = rows.filter((r) => r.type === section.type);
     const visible = all.filter((r) =>
       (fStatus === 'any' || section.type === 'personal' || r.status === fStatus)
+      && (fApplied === 'any' || section.type === 'personal'
+          || hasApplied(r) === (fApplied === 'yes'))
       && matchesQuery(r, q));
 
     // While searching, an empty section is just noise — drop it entirely.
