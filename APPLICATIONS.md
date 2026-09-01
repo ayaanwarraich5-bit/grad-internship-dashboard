@@ -44,9 +44,10 @@ persona below.
 **Aberdeen Investments — Client Group Intern, Strategic Insurance Group & Client
 Governance** (Edinburgh, Jun–Aug 2026)
 - Account-planning view of the Benelux insurance market: 281 insurers, €730bn,
-  covering ownership, investment models and Solvency II reform, concluding where to
-  re-engage/prioritise. Delivered as a deck to the insurance and EMEA sales and
-  distribution teams.
+  covering ownership, investment models and Solvency II reform. Output was **both**
+  existing clients to re-engage **and new market opportunities to target**, so this is
+  origination as well as account planning: say so. Finished with a presentation of the
+  conclusions to the insurance and EMEA sales and distribution teams.
 - Sat in on private credit, private markets and specialist equities meetings to
   understand which asset classes suit institutional clients under regulatory
   constraints.
