@@ -238,6 +238,29 @@ Every letter should carry all three of:
 If a firm's requirement genuinely cannot be evidenced, name the gap plainly and move on.
 That beats talking around it.
 
+### Research the firm before writing
+
+The "why this firm" paragraph is built from research, never from the About page. Before
+drafting, look for: the firm's own insights, research and news pages; recent press
+coverage; results, launches, forecasts or deals from the last few months; and what they
+publicly say the problems in their market are. The best paragraph takes something they
+published and connects it to something Ayaan has actually done.
+
+**Verification rule, no exceptions.** Only cite what has been confirmed from a real
+source in this session. Never invent or half-remember a statistic, deal, fund launch,
+executive quote or news story. A fabricated reference in a cover letter is worse than no
+reference at all, because the person reading it works there and will know.
+
+**Practical constraint:** this environment's egress proxy blocks most corporate and ATS
+domains (macquarie.com, jpmc.fa.oraclecloud.com and recruitment sites have all been
+refused). Web search does work and is usually enough. Where a page cannot be fetched, say
+so and ask Ayaan to paste it rather than guessing.
+
+*Worked example.* For WTW Retirement, search surfaced their February 2026 forecast of a
+~£70bn UK pension risk transfer market, and their stated view that the constraint is now
+delivery rather than pricing, with schemes queuing on data cleansing. That let the letter
+land Ayaan's 1,200-record validation work on the bottleneck WTW itself had named.
+
 ## Feedback style
 
 Brutally honest, like a recruiter with 200 CVs to get through and no patience for
