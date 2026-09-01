@@ -54,13 +54,54 @@ _lock = threading.Lock()
 
 # ---------------------------------------------------------------- data store
 
+HIGHWATER_FILE = os.path.join(ROOT, ".highwater.json")
+
+
 def load_data():
     with open(DATA_FILE, "r", encoding="utf-8") as fh:
         rows = json.load(fh)
     for row in rows:
         if row.get("stage") in LEGACY_STAGES:
             row["stage"] = LEGACY_STAGES[row["stage"]]
+    _check_highwater(rows)
     return rows
+
+
+def _check_highwater(rows):
+    """Warn loudly if data.json holds fewer/different ids than we've seen before.
+
+    This project lives in a OneDrive-synced folder. Once, a delayed sync reverted
+    data.json to an older snapshot on disk sometime between two saves; the next
+    ordinary PATCH then loaded that already-reverted file and faithfully saved it
+    back, silently baking the loss in for several more commits before it was
+    noticed. This can't fix that after the fact - by the time save_data() runs the
+    corruption is already in the in-memory rows it's asked to write - but a cheap
+    check at load time turns "silently gone for 3 commits" into "flagged this
+    request", which is the difference that matters. Not a hard block: deleting a
+    row is a normal, correct way for the id set to shrink.
+    """
+    ids = {r.get("id") for r in rows}
+    try:
+        with open(HIGHWATER_FILE, "r", encoding="utf-8") as fh:
+            known = set(json.load(fh))
+    except (FileNotFoundError, json.JSONDecodeError):
+        known = set()
+
+    missing = known - ids
+    if len(missing) > 1:
+        print(f"[highwater] WARNING: data.json is missing {len(missing)} previously-seen "
+              f"id(s) it didn't look like a normal single delete removed: {sorted(missing)}. "
+              f"If this wasn't an intentional bulk delete, data.json may have reverted to a "
+              f"stale snapshot (this folder is OneDrive-synced) - check git log/diff before "
+              f"trusting the current file.", flush=True)
+
+    updated = known | ids
+    if updated != known:
+        try:
+            with open(HIGHWATER_FILE, "w", encoding="utf-8") as fh:
+                json.dump(sorted(updated), fh)
+        except OSError:
+            pass  # advisory only - never let this block a real read
 
 
 def save_data(rows):

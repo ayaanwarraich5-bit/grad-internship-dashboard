@@ -3,6 +3,7 @@ __pycache__/
 .venv/
 venv/
 .data-*.json
+.highwater.json
 .DS_Store
 
 # Real CV files stay local — they're personal documents, not source.
