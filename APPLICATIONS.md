@@ -50,6 +50,9 @@ Governance** (Edinburgh, Jun–Aug 2026)
 - Sat in on private credit, private markets and specialist equities meetings to
   understand which asset classes suit institutional clients under regulatory
   constraints.
+- Attended client meetings with insurers. *(Confirmed real by Ayaan, 2026-09-01 —
+  detail on which clients, how often, and his role in the meeting not yet captured.
+  Ask before writing a specific claim about this into a CV bullet or cover letter.)*
 - Anti-financial crime: cleared sanctions, PEP and adverse media alerts to 97% quality
   against a 90% target, on confidential cases. *(For private banking / wealth roles
   this is client due diligence and source-of-wealth work — lean into it.)*
