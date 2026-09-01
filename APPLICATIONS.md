@@ -123,8 +123,15 @@ banking / wealth management*
 - 100% across 10+ performance reviews; high-volume transactions, multi-customer
   situations.
 
-**Wiser Academy — Brand Ambassador** — commercial awareness, communication, promotion.
-**Original bullets are not preserved. Ask Ayaan rather than reconstructing them.**
+**Wiser Academy — Brand Ambassador** (Nottingham, Sep 2025 – May 2026)
+- Represented KPMG, Santander, Fidelity and Haysmacintyre on campus, promoting their
+  graduate programmes to students and producing content to reach a wider audience.
+- Spoke directly with students of very different backgrounds and levels of knowledge,
+  judging how much detail each one needed.
+- Coordinated with the sponsoring firms and other ambassadors to run and promote events.
+- *The closest thing to a client-facing sales role in a financial services setting.
+  Worth real space on private banking, wealth and any application asking for
+  relationship-building or sales intent.*
 
 Skills as listed: Languages — English, Hindi, Urdu, Punjabi (fluent); French, Spanish
 (proficient). Technical — valuation (DCF, comps), ESG and investment research, Excel,
