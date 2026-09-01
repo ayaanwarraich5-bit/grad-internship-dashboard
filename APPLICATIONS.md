@@ -220,6 +220,24 @@ actually rewards:
 - **Asset / investment management** — research process, portfolio construction, market
   views.
 
+## Cover letters — what they are for
+
+A cover letter answers **why me, why this role, why this firm**. Nothing else.
+
+**Never spend space on eligibility.** Grades, predicted classification, A-Level results,
+modules, graduation dates and visa or availability status are checked from the CV and the
+application form. Restating them in the letter wastes the paragraph a reader actually
+weighs, and reads as padding.
+
+Every letter should carry all three of:
+- **Why me** — the specific evidence, with numbers, that fits what the posting asks for.
+- **Why this role** — what draws him to the actual work, argued from something real.
+- **Why this firm** — something only true of them, taken from their own posting or
+  business, not a compliment any competitor would also accept.
+
+If a firm's requirement genuinely cannot be evidenced, name the gap plainly and move on.
+That beats talking around it.
+
 ## Feedback style
 
 Brutally honest, like a recruiter with 200 CVs to get through and no patience for
