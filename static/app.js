@@ -99,6 +99,54 @@ function flashSaved() {
   savedTimer = setTimeout(() => el.classList.remove('on'), 1300);
 }
 
+/* ── offer celebration ────────────────────────────────────────────────── */
+const CONFETTI_COLORS = ['#2F6F5E', '#A9822F', '#1D6FBF', '#C2740A', '#1F8A57', '#C23B3B'];
+const BALLOON_COLORS = ['#E1706A', '#5C9FE0', '#D3A94D', '#45B27E', '#B98CDB'];
+
+function celebrate(company) {
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'celebrate';
+  overlay.setAttribute('aria-hidden', 'true');
+
+  const banner = document.createElement('div');
+  banner.className = 'celebrate-banner';
+  banner.textContent = `🎉 Offer — ${company}!`;
+  overlay.appendChild(banner);
+
+  if (!reduceMotion) {
+    // Confetti: small falling rectangles, staggered start and duration.
+    for (let i = 0; i < 70; i++) {
+      const piece = document.createElement('span');
+      piece.className = 'confetti-piece';
+      const size = 6 + Math.random() * 6;
+      piece.style.left = `${Math.random() * 100}vw`;
+      piece.style.width = `${size}px`;
+      piece.style.height = `${size * 0.4}px`;
+      piece.style.background = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+      piece.style.animationDuration = `${2.6 + Math.random() * 1.8}s`;
+      piece.style.animationDelay = `${Math.random() * 0.6}s`;
+      piece.style.setProperty('--drift', `${(Math.random() - 0.5) * 160}px`);
+      piece.style.setProperty('--spin', `${360 * (Math.random() > 0.5 ? 1 : -1) * (2 + Math.random() * 2)}deg`);
+      overlay.appendChild(piece);
+    }
+    // Balloons: rise from the bottom with a gentle sway.
+    for (let i = 0; i < 7; i++) {
+      const balloon = document.createElement('span');
+      balloon.className = 'balloon';
+      balloon.style.left = `${8 + i * 13 + (Math.random() * 6 - 3)}vw`;
+      balloon.style.background = BALLOON_COLORS[i % BALLOON_COLORS.length];
+      balloon.style.animationDuration = `${4 + Math.random() * 1.5}s`;
+      balloon.style.animationDelay = `${Math.random() * 0.5}s`;
+      overlay.appendChild(balloon);
+    }
+  }
+
+  document.body.appendChild(overlay);
+  setTimeout(() => overlay.remove(), reduceMotion ? 2400 : 5200);
+}
+
 /* ── API ──────────────────────────────────────────────────────────────── */
 async function api(path, options = {}) {
   const res = await fetch(path, options);
@@ -510,9 +558,11 @@ sections.addEventListener('change', async (event) => {
   if (article && act === 'stage') {
     const id = article.dataset.id;
     const row = rows.find((r) => r.id === id);
+    const justOffered = target.value === 'offer' && row && row.stage !== 'offer';
     if (row) row.stage = target.value;
     await patch(id, { stage: target.value });
     renderAll();
+    if (justOffered) celebrate(row.company);
     return;
   }
 
