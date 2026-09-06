@@ -24,9 +24,9 @@ const STATUS = {
 
 const SECTIONS = [
   { type: 'personal', title: 'In progress', addable: false },
-  { type: 'grad',     title: 'Graduate schemes — independent & best-fit managers', addable: true },
-  { type: 'intern',   title: 'Summer internships — BB private banks & elite-boutique AM arms', addable: true },
-  { type: 'backup',   title: 'Backup — pensions, insurance & consulting', addable: true },
+  { type: 'grad',     title: 'Graduate schemes — bulge-bracket & elite asset managers', addable: true },
+  { type: 'intern',   title: 'Summer internships — bulge-bracket & elite-boutique AM arms', addable: true },
+  { type: 'backup',   title: 'Backup — BCG / Bain / McKinsey only', addable: true },
 ];
 
 // Assessments worth tracking separately from the stage: being *at* the online
@@ -287,7 +287,7 @@ function renderTodos() {
 }
 
 function renderDeadlines() {
-  const soon = rows.filter((r) => r.dateISO)
+  const soon = rows.filter((r) => r.dateISO && r.stage !== 'offer' && r.stage !== 'rejected')
     .sort((a, b) => a.dateISO.localeCompare(b.dateISO))
     .slice(0, 8);
   if (!soon.length) {

@@ -6,31 +6,56 @@ reliably persist edits.
 
 ## Who this is for
 
-UK final-year BSc Economics student (University of Nottingham). Just finished a 10-week
+UK final-year BSc Economics student (University of Nottingham). Completed a 10-week
 summer internship at **abrdn (Aberdeen Investments)**, rotating across three Client Group
 teams: FC Screening & Monitoring, Distribution Governance & Client Controls, and the
-Strategic Insurance Group. Split between Edinburgh and 280 Bishopsgate, London. Awaiting
-the full-time conversion decision.
+Strategic Insurance Group. Split between Edinburgh and 280 Bishopsgate, London.
+**Received a full-time offer from abrdn (Sept 2026).** That offer is now the floor every
+other application is measured against — see strategy below.
 
-Target: **asset management and investment management**, specifically **client-facing or
-investments** roles.
+Target: **investment analyst or client group / client-facing roles**, exclusively at
+asset managers judged bigger or as prestigious as abrdn, plus bulge-bracket private banks.
 
 ## Job search strategy — this drives which firms belong where
 
-- **Not applying to:** top investment banks, trading desks, quant roles.
-- **Backup only, never priority:** pensions, insurance, consulting.
-- **Grad schemes (`type: "grad"`):** smaller / independent asset managers, wealth managers
-  and private banks where he's a strong fit and the odds beat the household names —
-  e.g. Insight Investment, Baillie Gifford, Rathbones, Vanguard, Northern Trust, Julius Baer.
-- **Summer internships (`type: "intern"`), not grad schemes, specifically at:**
-  - Bulge-bracket banks' **asset management arms** and **private banks** — their grad
-    schemes are very hard to get, but the internships are comparatively easier
-    (GSAM, J.P. Morgan Private Bank, Morgan Stanley Investment Management).
-  - **Elite-boutique AM arms** (Redburn, Lazard Asset Management).
-  - "Private bank" here means **only private banks that are arms of bulge-bracket banks**.
-    Independent private banks — Weatherbys, Julius Baer, Northern Trust — go on the
-    **grad** track instead.
-- **Priority principle:** fewer roles he genuinely wants beats maximising volume.
+Rewritten 2026-09-06 following the abrdn offer. This **replaces** the old "smaller/
+independent firms for better odds" logic entirely — that framing is retired. The bar is
+now quality, not odds: with abrdn as a confirmed offer in hand, a new application only
+makes sense if the firm is a genuine step up.
+
+- **In scope, `type: "grad"` or `"intern"` — whichever the firm actually runs:**
+  - **Bulge-bracket private banks** (grad or internship, either now fair game — not
+    internship-only). E.g. Barclays, J.P. Morgan Private Bank, UBS.
+  - **Bulge-bracket banks' asset management arms** (grad or internship). E.g. GSAM,
+    Morgan Stanley Investment Management, J.P. Morgan Asset Management.
+  - **Elite or large independent asset managers** — judged bigger (AUM) or at least as
+    prestigious/selective as abrdn. E.g. BlackRock, Vanguard, Capital Group, Fidelity,
+    Schroders, Franklin Templeton, PIMCO, Columbia Threadneedle, Insight Investment,
+    Northern Trust, Baillie Gifford (smaller AUM than abrdn but judged "as good" on
+    selectivity/prestige — a judgment call, flagged on that row), Lazard Asset Management.
+- **Explicit exclusions, even if previously tracked:**
+  - Any asset manager judged **not** bigger or as good as abrdn (this is what took out
+    most of the old "smaller/independent, better odds" watchlist — Rathbones, Evelyn
+    Partners, St James's Place, GIB AM, Ruffer, Russell Investments, VenCap, Barings,
+    Principal Asset Management, Janus Henderson, M&G, Skybound, etc.).
+  - **Independent (non-BB) private banks** — Julius Baer, Weatherbys, EFG International.
+    Previously routed to the grad track as an exception; no longer in scope at all now
+    that private banks must be bulge-bracket.
+  - **Any pensions or insurance employer** — WTW, Aon, Legal & General, Aviva Investors
+    (insurer-owned). No backup tier for these anymore; they're just out.
+  - **Consulting**, except **BCG, Bain, and McKinsey** specifically. Accuracy is out.
+  - **Marshall Wace** — excluded by name, regardless of prestige.
+  - Top investment banks, trading desks, quant roles — unchanged from before.
+- **Backup tier (`type: "backup"`):** now reserved solely for BCG / Bain / McKinsey, if
+  and when he points at a specific role there — not a priority, and not populated yet.
+  Everything that used to live in backup (pensions, insurance, other consulting) is a
+  flat exclusion now, not a lower tier.
+- **Grandfathered regardless of the above:** firms already applied to before this reset —
+  Barclays, J.P. Morgan Private Bank, BlackRock (grad), Macquarie, UBS, GSAM — stay on
+  the dashboard as the applied/in-progress record even if one wouldn't individually clear
+  today's bar on paper.
+- **Priority principle:** fewer roles he genuinely wants beats maximising volume — more
+  true than ever now that abrdn is a confirmed floor, not a hoped-for outcome.
 - **Sources:** Trackr (`app.the-trackr.com/uk-finance`), Bright Network, SEO London.
 
 
