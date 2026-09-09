@@ -96,26 +96,47 @@ point him at the applications workspace instead.
 - `static/` — `index.html`, `styles.css`, `app.js`. No build step, no framework.
 - Run: `python app.py` → http://127.0.0.1:5173
 
-### Auto-start at logon
+### Auto-start at logon — and a hard environment limit discovered while fixing it
 
 The server used to die every reboot/logout and need a manual restart each time.
-Fixed 2026-09-07: `tools/start_dashboard.vbs` is installed as a copy in the current
-user's Startup folder (`%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\
-GradDashboardAutoStart.vbs`), which Windows runs automatically and silently on every
-interactive logon. It sleeps 20s (letting OneDrive remount first), then launches
-`pythonw.exe app.py` hidden — no console window, no visible process.
 
-**Why a Startup-folder script and not a Scheduled Task:** tried first, but both
-`schtasks.exe` and the `ScheduledTasks` PowerShell module fail with "Access is denied"
-from this session's shell, even for a trivial task with no path complexity — the same
-kind of execution-context sandboxing gap already noted below for the Claude CLI. If a
-future session has genuine Task Scheduler access, that'd be a fine upgrade (it can
-express "restart on failure" etc.), but don't assume it'll work — verify with a
-trivial `schtasks /create` first before relying on it.
+**Read this before touching auto-start again.** On 2026-09-09, checking this session's
+own `(Get-CimInstance Win32_OperatingSystem).LastBootUpTime` / `systeminfo` returned a
+boot time from **13 days before** the reboot Ayaan had just done. That's hard proof this
+session's Bash/PowerShell tools run in a persistent background context on his machine
+that never itself experiences his real logons or reboots — the same underlying gap
+already known from the Claude CLI (below) and from `schtasks`/`ScheduledTasks` both
+failing "Access is denied" here even for a trivial task. Startup-folder scripts,
+Scheduled Tasks — anything gated on "at logon" or "at boot" — **cannot be verified from
+this session by testing it here**, no matter how clean the test looks. Manually running
+a `.vbs`/`.bat`/task action and watching it succeed only proves the script's own logic
+is correct; it proves nothing about whether Windows will actually fire it at Ayaan's
+real logon. Two auto-start fixes (a `pythonw.exe`-direct `.vbs`, then a `.bat`-wrapped
+version with logging) both looked verified from here and were both silent no-ops for
+him. **Don't repeat that mistake** — say so explicitly and get him to confirm after a
+real reboot, rather than reporting success off a manual test.
 
-The repo's copy of the script is documentation/source of truth; only the Startup-folder
-copy actually runs. If the two ever diverge, re-copy the repo version over the
-Startup-folder one. To disable auto-start, delete the Startup-folder copy.
+Current setup, two layers:
+- `tools/launch_dashboard.bat` — logs a timestamped line then runs `python.exe app.py`,
+  both appended to `dashboard_startup.log` in the project root (git-ignored). Deliberately
+  uses `python.exe` not `pythonw.exe` so a crash has output to look at.
+- `tools/start_dashboard.vbs` — a copy sits in the Startup folder
+  (`%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\GradDashboardAutoStart.vbs`),
+  sleeps 20s (OneDrive remount headroom), then runs the `.bat` hidden. **Unconfirmed
+  whether this actually fires at Ayaan's real logon** — two attempts produced zero lines
+  in `dashboard_startup.log`, meaning either the Startup item never ran or something
+  failed before the `.bat`'s very first line, and it couldn't be diagnosed further from
+  this session. Kept as a harmless second layer, not trusted as the primary fix.
+- **Scheduled Task, registered by Ayaan himself** (not from a Claude session — that's
+  the whole point): `schtasks /create /SC ONLOGON /TN "GradDashboardAutoStart" /TR
+  "\"...\tools\launch_dashboard.bat\"" /DELAY 0000:20 /F`, run from a PowerShell window
+  he opens normally. This is the mechanism actually expected to work, since it's created
+  from his real session rather than this one.
+
+If he reports it's still not starting after a real reboot: ask him to paste
+`dashboard_startup.log` (git-ignored, local only) rather than guessing again — an empty
+file still narrows it down (Startup/Task Scheduler trigger itself didn't fire), and a
+file with a Python traceback tells you exactly what to fix.
 
 ### Data model
 

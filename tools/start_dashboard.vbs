@@ -12,16 +12,22 @@
 ' sandboxing gap already documented in CLAUDE.md for the Claude CLI. The
 ' Startup folder only needs plain filesystem write access, which works fine.
 '
+' Why this delegates to tools\launch_dashboard.bat instead of invoking python
+' directly: the first version called pythonw.exe inline here with two nested
+' quoted paths, and pythonw.exe has no console, so when it silently failed at
+' real logon (cause never confirmed - possibly AV/WSH policy, possibly a
+' OneDrive timing race) there was zero error output to diagnose from. The
+' .bat now logs every attempt (including tracebacks) to dashboard_startup.log
+' in the project root, and uses regular python.exe wrapped in a hidden window
+' instead of pythonw.exe, so a real failure is finally visible next time.
+'
 ' The 20-second sleep gives OneDrive a head start remounting this folder
 ' before app.py tries to read data.json, since this project lives inside a
 ' OneDrive-synced path.
-'
-' pythonw.exe (not python.exe) is used deliberately so no console window
-' ever appears at logon.
 '
 ' To stop auto-starting: delete the copy of this file from the Startup
 ' folder above (this repo copy alone does nothing - only the Startup-folder
 ' copy runs).
 
 WScript.Sleep 20000
-CreateObject("WScript.Shell").Run """C:\Users\ayaan\AppData\Local\Programs\Python\Python312\pythonw.exe"" ""C:\Users\ayaan\OneDrive\Claude\Grad and Internship Dashboard\app.py""", 0, False
+CreateObject("WScript.Shell").Run """C:\Users\ayaan\OneDrive\Claude\Grad and Internship Dashboard\tools\launch_dashboard.bat""", 0, False
