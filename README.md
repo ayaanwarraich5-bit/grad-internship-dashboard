@@ -12,6 +12,23 @@ python app.py
 
 Then open **http://127.0.0.1:5173**. Set `PORT` to use a different port.
 
+### Opening it on a phone
+
+`127.0.0.1` is the PC talking to itself — a phone can never reach that address, which is
+why the phone says it can't connect. To view the dashboard on a phone on the same Wi-Fi,
+start the server bound to the network instead:
+
+```bat
+set HOST=0.0.0.0 && python app.py
+```
+
+It then prints a second line — `http://192.168.x.x:5173` — and that's the address to type
+into the phone's browser. Windows will ask once to allow Python through the firewall on
+private networks; say yes. The PC has to be awake and running the server the whole time.
+
+There's no login on the dashboard, so anyone else on that Wi-Fi can open it too. Leaving
+the default (`127.0.0.1`, loopback only) keeps it off the network entirely.
+
 First time only:
 
 ```bash

@@ -4,12 +4,15 @@ One authoritative file on disk (data.json) that both the browser and Claude Code
 read and write directly. Real CV files live in uploads/<id>/, never base64 in JSON.
 
 Run:  python app.py   ->  http://127.0.0.1:5173
+Phone/tablet on the same Wi-Fi:  set HOST=0.0.0.0 first, then browse to the
+LAN address the server prints on startup.
 """
 
 import json
 import os
 import re
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
@@ -25,6 +28,9 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.join(ROOT, "data.json")
 UPLOADS = os.path.join(ROOT, "uploads")
 PORT = int(os.environ.get("PORT", "5173"))
+# Loopback by default: the dashboard has no login, so it stays off the network
+# unless asked. HOST=0.0.0.0 exposes it to other devices on the same Wi-Fi.
+HOST = os.environ.get("HOST", "127.0.0.1")
 
 MAX_UPLOAD_BYTES = 15 * 1024 * 1024
 ALLOWED_EXT = {".pdf", ".doc", ".docx"}
@@ -605,9 +611,24 @@ def too_large(_):
     return jsonify({"error": "file is larger than 15MB"}), 413
 
 
+def lan_ip():
+    """This machine's address on the local network, for opening the dashboard on a phone."""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        sock.connect(("8.8.8.8", 80))  # no packets sent; just picks the outbound interface
+        return sock.getsockname()[0]
+    except OSError:
+        return "<this-machine-ip>"
+    finally:
+        sock.close()
+
+
 if __name__ == "__main__":
     if not os.path.isfile(DATA_FILE):
         sys.exit(f"data.json is missing from {ROOT}")
     os.makedirs(UPLOADS, exist_ok=True)
-    print(f"\n  Grad and Internship Dashboard  ->  http://127.0.0.1:{PORT}\n")
-    app.run(host="127.0.0.1", port=PORT, debug=False)
+    print(f"\n  Grad and Internship Dashboard  ->  http://127.0.0.1:{PORT}")
+    if HOST not in ("127.0.0.1", "localhost"):
+        print(f"  Same Wi-Fi (phone, tablet)     ->  http://{lan_ip()}:{PORT}")
+    print()
+    app.run(host=HOST, port=PORT, debug=False)
