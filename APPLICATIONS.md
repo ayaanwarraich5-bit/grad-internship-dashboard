@@ -10,6 +10,15 @@ stores the finished CV as a record once Ayaan drops it in himself. Don't edit
 
 Ayaan Warraich. UK final-year BSc Economics student (University of Nottingham,
 predicted 2:1). Just finished a 10-week internship at **abrdn (Aberdeen Investments)**
+
+**Postgraduate study: genuinely undecided, not settled either way.** He is considering an
+MSc for Sep 2027 entry but has not decided or applied. Where a role's eligibility genuinely
+turns on it (a summer internship requiring 2028 graduation), it is honest to write
+"considering postgraduate study for 2027 entry" — no institution or subject, since neither
+is chosen yet. Never write "intending" or imply a firm plan while he remains undecided, and
+never use this as a device to pass an eligibility filter for a programme he does not mean
+to defer into. If he later says he has decided against a master's, or decided to actually
+apply, update this note and the wording used on any application.
 across three Client Group teams: FC Screening & Monitoring, Distribution Governance &
 Client Controls, and the Strategic Insurance Group. Split between Edinburgh and 280
 Bishopsgate, London.
