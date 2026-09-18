@@ -5,6 +5,7 @@ venv/
 .data-*.json
 .highwater.json
 .DS_Store
+dashboard_startup.log
 
 # Real CV files stay local — they're personal documents, not source.
 uploads/

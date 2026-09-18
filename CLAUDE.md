@@ -15,6 +15,8 @@ other application is measured against — see strategy below.
 
 Target: **investment analyst or client group / client-facing roles**, exclusively at
 asset managers judged bigger or as prestigious as abrdn, plus bulge-bracket private banks.
+**London only** (added 2026-09-18) — this is why Baillie Gifford was dropped despite
+clearing the prestige bar; Edinburgh/regional-only roles are out regardless of firm.
 
 ## Job search strategy — this drives which firms belong where
 
@@ -86,6 +88,12 @@ point him at the applications workspace instead.
   by division.
 - The running page polls `GET /api/applications` every 3s, so edits made to `data.json`
   from chat show up in the open browser tab without a manual refresh.
+- **Watchlist rows need checking often enough to actually catch the opening, not just
+  confirm it opened.** On 2026-09-18 Ayaan reported Capital Group and Schroders both
+  opened and he found out too late to apply with good odds (Schroders he applied to
+  anyway, ~2 weeks late; Capital Group he skipped entirely) — the gap was checking
+  cadence, not the strategy. If a while has passed since a `watchlist` row's firm was
+  last checked, proactively re-check rather than waiting to be asked.
 
 ## Architecture
 
