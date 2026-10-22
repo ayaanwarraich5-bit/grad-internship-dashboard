@@ -125,26 +125,46 @@ him. **Don't repeat that mistake** — say so explicitly and get him to confirm 
 real reboot, rather than reporting success off a manual test.
 
 Current setup, two layers:
-- `tools/launch_dashboard.bat` — logs a timestamped line then runs `python.exe app.py`,
-  both appended to `dashboard_startup.log` in the project root (git-ignored). Deliberately
-  uses `python.exe` not `pythonw.exe` so a crash has output to look at.
+- `tools/launch_dashboard.bat` — appends a timestamped line to `dashboard_startup.log` in
+  the project root (git-ignored), exits quietly if something already listens on 5173, then
+  runs `python.exe app.py` with its output going to the same log. Deliberately
+  `python.exe` not `pythonw.exe` so a crash has output to look at. **It finds Python
+  itself**: the first install under `%LOCALAPPDATA%\Programs\Python` that can
+  `import flask`, and logs which one it used. The log rolls to `.old` past ~1 MB.
 - `tools/start_dashboard.vbs` — a copy sits in the Startup folder
   (`%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\GradDashboardAutoStart.vbs`),
-  sleeps 20s (OneDrive remount headroom), then runs the `.bat` hidden. **Unconfirmed
-  whether this actually fires at Ayaan's real logon** — two attempts produced zero lines
-  in `dashboard_startup.log`, meaning either the Startup item never ran or something
-  failed before the `.bat`'s very first line, and it couldn't be diagnosed further from
-  this session. Kept as a harmless second layer, not trusted as the primary fix.
+  sleeps 20s (OneDrive remount headroom), then runs the `.bat` hidden.
 - **Scheduled Task, registered by Ayaan himself** (not from a Claude session — that's
   the whole point): `schtasks /create /SC ONLOGON /TN "GradDashboardAutoStart" /TR
   "\"...\tools\launch_dashboard.bat\"" /DELAY 0000:20 /F`, run from a PowerShell window
-  he opens normally. This is the mechanism actually expected to work, since it's created
-  from his real session rather than this one.
+  he opens normally.
+
+At least one of those two mechanisms demonstrably fires at his real logon —
+`dashboard_startup.log` has launch lines for 17 Sep, 18 Oct and 19 Oct — but the log can't
+say which. Both run the same `.bat`, and the singleton check makes it harmless if both fire.
+
+**Incident, 2026-10-22: "servers down" again, a month after the fix.** Not the trigger —
+the `.bat` hardcoded `...\Python312\python.exe`, and on 2026-09-29 Python 3.12 was
+uninstalled and 3.14 installed. Every logon since then logged `'"...\python.exe"' is not
+recognized`. A freshly installed Python also has **none of the packages**, so just fixing
+the path would have crashed on `import flask`; the fix was `pip install -r requirements.txt`
+into 3.14 plus the discovery logic above. **If Python is upgraded again**, the log line will
+read `NO PYTHON WITH FLASK FOUND` — the remedy is one command:
+`<new python> -m pip install -r requirements.txt`.
 
 If he reports it's still not starting after a real reboot: ask him to paste
-`dashboard_startup.log` (git-ignored, local only) rather than guessing again — an empty
-file still narrows it down (Startup/Task Scheduler trigger itself didn't fire), and a
-file with a Python traceback tells you exactly what to fix.
+`dashboard_startup.log` (git-ignored, local only) rather than guessing again — a missing
+launch line means the trigger itself didn't fire, and a launch line followed by an error
+tells you exactly what to fix.
+
+### The highwater tripwire (`.highwater.json`, git-ignored)
+
+`app.py` remembers every id it has ever seen and prints a `[highwater] WARNING` to the log
+if 2+ of them go missing from `data.json` — meant to catch OneDrive reverting the file to a
+stale snapshot. Deletes made **through the dashboard** call `_forget_id`, so they don't
+count. Rows you remove by editing `data.json` directly do: **after removing 2+ rows by hand,
+reset `.highwater.json` to the current ids**, or it warns on every 3-second poll forever
+(that flood is what grew the log to 1 MB before the 2026-10-22 fix).
 
 ### Data model
 

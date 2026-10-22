@@ -104,6 +104,22 @@ def _check_highwater(rows):
             pass  # advisory only - never let this block a real read
 
 
+def _forget_id(app_id):
+    """A delete made through the API is not data loss, so stop the tripwire counting it.
+
+    Without this every deliberate delete stayed in the remembered set forever; from the
+    second one on, _check_highwater warned on every 3-second poll and flooded the log.
+    """
+    try:
+        with open(HIGHWATER_FILE, "r", encoding="utf-8") as fh:
+            known = set(json.load(fh))
+        known.discard(app_id)
+        with open(HIGHWATER_FILE, "w", encoding="utf-8") as fh:
+            json.dump(sorted(known), fh)
+    except (OSError, json.JSONDecodeError):
+        pass  # advisory only
+
+
 def save_data(rows):
     """Write one object per line, then atomically replace.
 
@@ -286,6 +302,7 @@ def api_delete(app_id):
             return jsonify({"error": "the in-progress row cannot be deleted"}), 400
         rows = [r for r in rows if r.get("id") != app_id]
         save_data(rows)
+        _forget_id(app_id)
     purge_row_dir(app_id)
     return jsonify({"ok": True})
 
